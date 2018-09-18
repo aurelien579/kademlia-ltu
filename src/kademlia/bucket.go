@@ -4,6 +4,8 @@ import (
 	"container/list"
 )
 
+//ceci est un putain de commentaire pour voir si ça marche 
+
 // bucket definition
 // contains a List
 type bucket struct {
