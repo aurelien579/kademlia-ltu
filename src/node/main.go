@@ -7,6 +7,7 @@ import (
 	"encoding/gob"
 	"bytes"
 	"strconv"
+	"os"
 )
 
 var node kademlia.Node
@@ -52,17 +53,27 @@ func getFreePort(start int) int {
 }
 
 func main() {
-    port := getFreePort(5555)
-    udpAddr, _ := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(port))
+    if len(os.Args) != 2 {
+        fmt.Printf("Usage: %s <port>\n", os.Args[0])
+        return
+    }
     
-    fmt.Printf("port found: %d\n", port)
-    
-    udpConn, err := net.ListenUDP("udp", udpAddr)
+    port, _ := strconv.Atoi(os.Args[1])
+
+    kademlia.Me = kademlia.NewNode("0000000000000000000000000000000000000001", "localhost", port)
+    //udpAddr, _ := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(port))
+
+    fmt.Printf("port: %d\n", port)
+
+    kademlia.Listen("localhost", port)
+
+    /*udpConn, err := net.ListenUDP("udp", udpAddr)
 
     if err != nil {
         fmt.Println(err)
         return
     }
     
-    handleConn(udpConn)
+    handleConn(udpConn)*/
 }
+

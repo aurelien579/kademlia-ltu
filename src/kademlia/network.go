@@ -4,7 +4,7 @@ type Network struct {
 }
 
 func Listen(ip string, port int) {
-	// TODO
+	
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
@@ -22,3 +22,4 @@ func (network *Network) SendFindDataMessage(hash string) {
 func (network *Network) SendStoreMessage(data []byte) {
 	// TODO
 }
+
