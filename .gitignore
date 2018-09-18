@@ -1,2 +1,5 @@
 node
+node.exe
+
 .idea/*
+pkg/*
