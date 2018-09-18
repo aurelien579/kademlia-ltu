@@ -1,12 +1,15 @@
 package main
 
 import (
+    "kademlia"
 	"fmt"
 	"net"
 	"encoding/gob"
 	"bytes"
 	"strconv"
 )
+
+var node kademlia.Node
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
