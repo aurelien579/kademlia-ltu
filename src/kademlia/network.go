@@ -6,6 +6,7 @@ import (
     "encoding/binary"
     "encoding/gob"
     "strconv"
+    "fmt"
 )
 
 type Network struct {
@@ -38,18 +39,20 @@ func IPToLong(ip string) uint32 {
 
 func IPToStr(ipInt uint32) string {
     // need to do two bit shifting and “0xff” masking
-    b0 := strconv.FormatInt((ipInt>>24)&0xff, 10)
-    b1 := strconv.FormatInt((ipInt>>16)&0xff, 10)
-    b2 := strconv.FormatInt((ipInt>>8)&0xff, 10)
-    b3 := strconv.FormatInt((ipInt & 0xff), 10)
+    var ipLong int64 = int64(ipInt)
+    
+    b0 := strconv.FormatInt((ipLong>>24)&0xff, 10)
+    b1 := strconv.FormatInt((ipLong>>16)&0xff, 10)
+    b2 := strconv.FormatInt((ipLong>>8)&0xff, 10)
+    b3 := strconv.FormatInt((ipLong & 0xff), 10)
     return b0 + "." + b1 + "." + b2 + "." + b3
 }
 
 func NewNetwork(id *KademliaID, ip string, port int) Network {
     return Network{
         ID: id,
-        IP: ip2Long(ip),
-        Port: port,
+        IP: IPToLong(ip),
+        Port: uint16(port),
     }
 }
 
@@ -65,7 +68,7 @@ func (network *Network) SendPingMessage(contact *Contact) {
     var buffer bytes.Buffer
     enc := gob.NewEncoder(&buffer)
     msg := Header{
-        SrcID: network.ID,
+        SrcID: *network.ID,
         SrcIP: network.IP,
         SrcPort: network.Port,
         Type: MSG_REQUEST,
