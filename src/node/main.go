@@ -63,9 +63,6 @@ func main() {
     kademlia.Me = kademlia.NewNode("0000000000000000000000000000000000000001", "localhost", port)
     //udpAddr, _ := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(port))
 
-    fmt.Printf("port: %d\n", port)
-
-    kademlia.Listen("localhost", port)
 
     /*udpConn, err := net.ListenUDP("udp", udpAddr)
 
@@ -75,5 +72,8 @@ func main() {
     }
     
     handleConn(udpConn)*/
+    
+    kademlia = NewKademlia()
+    kademlia.Listen()
 }
 
