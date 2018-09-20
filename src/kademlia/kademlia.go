@@ -42,11 +42,34 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
         var header Header
         decoder.Decode(&header)
 
-        switch header.Type{
+        switch header.SubType{
 
 		case MSG_PING :
 			//traiter le msgping
 		    kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
+
+			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP))
+			conn, err := net.DialUDP("udp", nil, addr)
+
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			var buffer bytes.Buffer
+			enc := gob.NewEncoder(&buffer)
+			msg := Header{
+				SrcID: *kademlia.Network.ID,
+				SrcIP: kademlia.Network.IP,
+				SrcPort: kademlia.Network.Port,
+				Type: MSG_RESPONSE,
+				SubType: MSG_PING,
+			}
+
+			enc.Encode(msg)
+			conn.Write(buffer.Bytes())
+
+
 
 		case MSG_FIND_NODES :
 
