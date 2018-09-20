@@ -5,8 +5,8 @@ import (
 )
 
 type Kademlia struct {
-    routingTable *RoutingTable
-    network Network
+    RoutingTable *RoutingTable
+    Network Network
 }
 
 var Me Kademlia
