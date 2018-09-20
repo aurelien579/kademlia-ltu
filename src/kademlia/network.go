@@ -1,7 +1,15 @@
 package kademlia
 
+import (
+    "net"
+    "bytes"
+    "encoding/binary"
+    "encoding/gob"
+    "strconv"
+)
+
 type Network struct {
-    ID KademliaID
+    ID *KademliaID
     IP uint32
     Port uint16
 }
@@ -37,7 +45,7 @@ func IPToStr(ipInt uint32) string {
     return b0 + "." + b1 + "." + b2 + "." + b3
 }
 
-func NewNetwork(id KademliaID, ip string, port int) Network {
+func NewNetwork(id *KademliaID, ip string, port int) Network {
     return Network{
         ID: id,
         IP: ip2Long(ip),

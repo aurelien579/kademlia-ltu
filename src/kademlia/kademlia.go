@@ -13,15 +13,14 @@ type Kademlia struct {
     Network Network
 }
 
-var Me Kademlia
-
-func KademliaInit(id string, ip string, port int) {
+func NewKademlia(id string, ip string, port int) Kademlia {
     me := NewContact(NewKademliaID(id), ip + strconv.Itoa(port))
-    Me := Kademlia{
-        routingTable: NewRoutingTable(me),
+    kademlia := Kademlia{
+        RoutingTable: NewRoutingTable(me),
+        Network: NewNetwork(me.ID, ip, port),
     }
     
-    return node
+    return kademlia
 }
 
 func (kademlia *Kademlia) Listen(ip string, port int) {
@@ -47,7 +46,7 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 
 		case MSG_PING :
 			//traiter le msgping
-			kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
+		    kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
 
 		case MSG_FIND_NODES :
 
@@ -56,7 +55,7 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 		case MSG_STORE :
 
 
-			}
+		}
 
 
         

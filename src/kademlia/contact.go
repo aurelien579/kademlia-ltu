@@ -69,5 +69,5 @@ func (candidates *ContactCandidates) Swap(i, j int) {
 // Less returns true if the Contact at index i is smaller than 
 // the Contact at index j
 func (candidates *ContactCandidates) Less(i, j int) bool {
-	return candidates.contacts[i].Less(&candidates.contacts[j])
+	return candidates.contacts[i].Closer(&candidates.contacts[j])
 }
