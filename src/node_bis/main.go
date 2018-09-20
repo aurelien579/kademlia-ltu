@@ -9,7 +9,6 @@ import (
 	"strconv"
 )
 
-
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
 
@@ -54,11 +53,15 @@ func main() {
     /*if len(os.Args) != 2 {
         fmt.Printf("Usage: %s <port>\n", os.Args[0])
         return
-    }
+    }*/
     
-    port, _ := strconv.Atoi(os.Args[1])*/
+    //port, _ := strconv.Atoi(os.Args[1])
     
-    kademlia := kademlia.NewKademlia("0000000000000000000000000000000000000001", "127.0.0.1", 3333)
-    kademlia.Listen("127.0.0.1", 3333)
+    
+    contact := kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), "localhost:3333")
+    
+    kademlia := kademlia.NewKademlia("0000000000000000000000000000000000000002", "127.0.0.1", 3334)
+    kademlia.Network.SendPingMessage(&contact)
+    kademlia.Listen("127.0.0.1", 3334)
 }
 

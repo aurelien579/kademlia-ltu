@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 )
 
 type Kademlia struct {
@@ -42,13 +43,16 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
         var header Header
         decoder.Decode(&header)
 
+        fmt.Printf("Header received: %v\n", header)
+        fmt.Printf("Address: %s\n", IPToStr(header.SrcIP))
+
         switch header.SubType{
 
 		case MSG_PING :
 			//traiter le msgping
 		    kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
 
-			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP))
+			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP) + ":" + strconv.Itoa(int(header.SrcPort)))
 			conn, err := net.DialUDP("udp", nil, addr)
 
 			if err != nil {
@@ -65,8 +69,13 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 				Type: MSG_RESPONSE,
 				SubType: MSG_PING,
 			}
+			
+            fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
 
 			enc.Encode(msg)
+			
+			time.Sleep(1*time.Second)
+			
 			conn.Write(buffer.Bytes())
 
 
