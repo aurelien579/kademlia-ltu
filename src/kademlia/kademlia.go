@@ -1,7 +1,11 @@
 package kademlia
 
 import (
-    "strconv"
+	"bytes"
+	"encoding/gob"
+	"fmt"
+	"net"
+	"strconv"
 )
 
 type Kademlia struct {
@@ -32,12 +36,29 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
         }
         
         inputBytes := make([]byte, 1024)
-        length, _ := c.Read(inputBytes)
+        length, _ := udpConn.Read(inputBytes)
         buf := bytes.NewBuffer(inputBytes[:length])
         
         decoder := gob.NewDecoder(buf)
         var header Header
         decoder.Decode(&header)
+
+        switch header.Type{
+
+		case MSG_PING :
+			//traiter le msgping
+			kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
+
+		case MSG_FIND_NODES :
+
+		case MSG_FIND_VALUE :
+
+		case MSG_STORE :
+
+
+			}
+
+
         
         // TODO: gérer le message dans un nouveau thread + AddContact
     }
