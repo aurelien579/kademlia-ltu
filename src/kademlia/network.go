@@ -37,6 +37,11 @@ type FindArguments struct {
 	Count uint8
 }
 
+type ContactResult struct {
+	ID      string
+	Address string
+}
+
 func NewNetwork(id *KademliaID, ip string, port int) Network {
 	return Network{
 		ID:   id,

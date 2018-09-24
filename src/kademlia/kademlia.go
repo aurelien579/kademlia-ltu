@@ -149,8 +149,18 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 
 		conn.Write(buffer.Bytes())
 
-		fmt.Println("Sending: ", contacts)
-		enc.Encode(contacts)
+		buffer.Reset()
+
+		var contactsResults []ContactResult
+		for _, c := range contacts {
+			contactsResults = append(contactsResults, ContactResult{
+				ID:      c.ID.String(),
+				Address: c.Address,
+			})
+		}
+		fmt.Println("Sending: ", contactsResults)
+
+		enc.Encode(contactsResults)
 
 		time.Sleep(1 * time.Second)
 
@@ -165,9 +175,10 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 		buf := bytes.NewBuffer(inputBytes[:length])
 
 		decoder := gob.NewDecoder(buf)
-		var contacts []Contact
-		decoder.Decode(&contacts)
+		var contacts []ContactResult
+		err := decoder.Decode(&contacts)
 
+		fmt.Println("Error: ", err)
 		fmt.Printf("Contacts received: %v\n", contacts)
 
 		udpConn.Close()
