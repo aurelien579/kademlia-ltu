@@ -49,13 +49,20 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 		switch header.SubType {
 
 		case MSG_PING:
+
 			kademlia.HandlePing(header)
 
 		case MSG_FIND_NODES:
 
+			kademlia.HandleFindNodes(header, udpConn)
+
 		case MSG_FIND_VALUE:
 
+			kademlia.HandleFindValue(header)
+
 		case MSG_STORE:
+
+			kademlia.HandleStore(header)
 
 		}
 
@@ -97,6 +104,92 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 		conn.Write(buffer.Bytes())
 
 	}
+
+}
+
+func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
+
+	switch header.Type{
+
+	case MSG_REQUEST:
+
+		for {
+
+			inputBytes := make([]byte, 1024)
+			length, _ := udpConn.Read(inputBytes)
+			buf := bytes.NewBuffer(inputBytes[:length])
+
+			decoder := gob.NewDecoder(buf)
+			var findArguments FindArguments
+			decoder.Decode(&findArguments)
+
+			fmt.Printf("Argument received: %v\n", findArguments)
+
+			var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(findArguments.Key), int(findArguments.Count))
+
+			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
+			conn, err := net.DialUDP("udp", nil, addr)
+
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			var buffer bytes.Buffer
+
+			enc := gob.NewEncoder(&buffer)
+			msg := Header{
+				SrcID:   *kademlia.Network.ID,
+				SrcIP:   kademlia.Network.IP,
+				SrcPort: kademlia.Network.Port,
+				Type:    MSG_RESPONSE,
+				SubType: MSG_FIND_NODES,
+			}
+
+			enc.Encode(msg)
+
+			time.Sleep(1 * time.Second)
+
+			conn.Write(buffer.Bytes())
+
+			enc.Encode(contacts)
+
+			time.Sleep(1 * time.Second)
+
+			conn.Write(buffer.Bytes())
+
+			udpConn.Close()
+		}
+
+	case MSG_RESPONSE:
+
+		for {
+
+			inputBytes := make([]byte, 1024)
+			length, _ := udpConn.Read(inputBytes)
+			buf := bytes.NewBuffer(inputBytes[:length])
+
+			decoder := gob.NewDecoder(buf)
+			var contacts []Contact
+			decoder.Decode(&contacts)
+
+			fmt.Printf("Argument received: %v\n", contacts)
+			
+
+			udpConn.Close()
+		}
+
+	}
+
+
+
+}
+
+func (kademlia *Kademlia) HandleFindValue(header Header) {
+
+}
+
+func (kademlia *Kademlia) HandleStore(header Header) {
 
 }
 
