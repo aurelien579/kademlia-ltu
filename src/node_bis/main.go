@@ -15,6 +15,7 @@ func main() {
 	contact := kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), "localhost:3333")
 
 	kademlia := kademlia.NewKademlia("0000000000000000000000000000000000000002", "127.0.0.1", 3334)
-	kademlia.Network.SendPingMessage(&contact)
+	//kademlia.Network.SendPingMessage(&contact)
+	kademlia.Network.SendFindContactMessage(&contact, contact.ID)
 	kademlia.Listen("127.0.0.1", 3334)
 }

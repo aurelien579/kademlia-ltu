@@ -20,7 +20,7 @@ const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
 
 const MSG_PING uint8 = 1
-const MSG_FIND_NODES uint8 = 2
+const MSG_FIND_NODES uint8 = 45
 const MSG_FIND_VALUE uint8 = 3
 const MSG_STORE uint8 = 4
 
@@ -50,8 +50,8 @@ func (network *Network) createHeader(typeId uint8, subTypeId uint8) Header {
 		SrcID:   *network.ID,
 		SrcIP:   network.IP,
 		SrcPort: network.Port,
-		Type:    MSG_REQUEST,
-		SubType: MSG_PING,
+		Type:    typeId,
+		SubType: subTypeId,
 	}
 }
 
@@ -92,6 +92,7 @@ func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findT
 	}
 
 	header := network.createHeader(MSG_REQUEST, findType)
+	fmt.Println("Sending: ", header)
 	encodeAndSend(conn, header)
 
 	findMessage := FindArguments{

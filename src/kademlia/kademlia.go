@@ -46,6 +46,8 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 		fmt.Printf("Header received: %v\n", header)
 		fmt.Printf("Address: %s\n", IPToStr(header.SrcIP))
 
+		kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
+
 		switch header.SubType {
 
 		case MSG_PING:
@@ -72,8 +74,6 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 }
 
 func (kademlia *Kademlia) HandlePing(header Header) {
-
-	kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
 
 	if header.Type == MSG_REQUEST {
 
@@ -109,79 +109,69 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 
-	switch header.Type{
+	switch header.Type {
 
 	case MSG_REQUEST:
+		inputBytes := make([]byte, 1024)
+		length, _ := udpConn.Read(inputBytes)
+		buf := bytes.NewBuffer(inputBytes[:length])
 
-		for {
+		decoder := gob.NewDecoder(buf)
+		var findArguments FindArguments
+		decoder.Decode(&findArguments)
 
-			inputBytes := make([]byte, 1024)
-			length, _ := udpConn.Read(inputBytes)
-			buf := bytes.NewBuffer(inputBytes[:length])
+		fmt.Printf("Argument received: %v\n", findArguments)
 
-			decoder := gob.NewDecoder(buf)
-			var findArguments FindArguments
-			decoder.Decode(&findArguments)
+		var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(findArguments.Key), int(findArguments.Count))
 
-			fmt.Printf("Argument received: %v\n", findArguments)
+		addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
+		conn, err := net.DialUDP("udp", nil, addr)
 
-			var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(findArguments.Key), int(findArguments.Count))
-
-			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
-			conn, err := net.DialUDP("udp", nil, addr)
-
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			var buffer bytes.Buffer
-
-			enc := gob.NewEncoder(&buffer)
-			msg := Header{
-				SrcID:   *kademlia.Network.ID,
-				SrcIP:   kademlia.Network.IP,
-				SrcPort: kademlia.Network.Port,
-				Type:    MSG_RESPONSE,
-				SubType: MSG_FIND_NODES,
-			}
-
-			enc.Encode(msg)
-
-			time.Sleep(1 * time.Second)
-
-			conn.Write(buffer.Bytes())
-
-			enc.Encode(contacts)
-
-			time.Sleep(1 * time.Second)
-
-			conn.Write(buffer.Bytes())
-
-			udpConn.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
+
+		var buffer bytes.Buffer
+
+		enc := gob.NewEncoder(&buffer)
+		msg := Header{
+			SrcID:   *kademlia.Network.ID,
+			SrcIP:   kademlia.Network.IP,
+			SrcPort: kademlia.Network.Port,
+			Type:    MSG_RESPONSE,
+			SubType: MSG_FIND_NODES,
+		}
+
+		enc.Encode(msg)
+
+		time.Sleep(1 * time.Second)
+
+		conn.Write(buffer.Bytes())
+
+		fmt.Println("Sending: ", contacts)
+		enc.Encode(contacts)
+
+		time.Sleep(1 * time.Second)
+
+		conn.Write(buffer.Bytes())
+
+		udpConn.Close()
 
 	case MSG_RESPONSE:
+		inputBytes := make([]byte, 1024)
+		length, _ := udpConn.Read(inputBytes)
+		fmt.Println("REceived length: ", length)
+		buf := bytes.NewBuffer(inputBytes[:length])
 
-		for {
+		decoder := gob.NewDecoder(buf)
+		var contacts []Contact
+		decoder.Decode(&contacts)
 
-			inputBytes := make([]byte, 1024)
-			length, _ := udpConn.Read(inputBytes)
-			buf := bytes.NewBuffer(inputBytes[:length])
+		fmt.Printf("Contacts received: %v\n", contacts)
 
-			decoder := gob.NewDecoder(buf)
-			var contacts []Contact
-			decoder.Decode(&contacts)
-
-			fmt.Printf("Argument received: %v\n", contacts)
-			
-
-			udpConn.Close()
-		}
-
+		udpConn.Close()
 	}
-
-
 
 }
 
