@@ -109,7 +109,7 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 
-	switch header.Type{
+	switch header.Type {
 
 	case MSG_REQUEST:
 
@@ -173,15 +173,12 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 			var contacts []Contact
 			decoder.Decode(&contacts)
 
-			fmt.Printf("Argument received: %v\n", contacts)
-			
+			fmt.Printf("Contacts received: %v\n", contacts)
 
 			udpConn.Close()
 		}
 
 	}
-
-
 
 }
 
