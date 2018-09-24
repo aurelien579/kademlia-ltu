@@ -38,3 +38,7 @@ func (storage *Storage) Read(filename string) []byte {
 
 	return bytes
 }
+
+func (storage *Storage) Store(filename string, data []byte) {
+	ioutil.WriteFile(storage.getPath(filename), data, 0644)
+}
