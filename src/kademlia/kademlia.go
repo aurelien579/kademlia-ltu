@@ -167,7 +167,7 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 
 		fmt.Printf("Argument received: %v\n", findArguments)
 
-		if kademlia.Storage.Exists(KademliaID.String(findArguments.Key)) {
+		if kademlia.Storage.Exists(findArguments.Key.String()) {
 
 			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
 			conn, err := net.DialUDP("udp", nil, addr)
@@ -196,7 +196,7 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 
 			buffer.Reset()
 
-			conn.Write(kademlia.Storage.Read(KademliaID.String(findArguments.Key)))
+			conn.Write(kademlia.Storage.Read(findArguments.Key.String()))
 
 			udpConn.Close()
 
