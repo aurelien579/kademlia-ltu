@@ -1,6 +1,10 @@
 package kademlia
 
-import "os"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+)
 
 type Storage struct {
 	Root string
@@ -22,4 +26,15 @@ func (storage *Storage) Exists(filename string) bool {
 	}
 
 	return false
+}
+
+func (storage *Storage) Read(filename string) []byte {
+	bytes, err := ioutil.ReadFile(storage.getPath(filename))
+
+	if err == nil {
+		fmt.Println("ERROR: ", err)
+		return nil
+	}
+
+	return bytes
 }
