@@ -12,6 +12,7 @@ import (
 type Kademlia struct {
 	RoutingTable *RoutingTable
 	Network      Network
+	Storage      Storage
 }
 
 func NewKademlia(id string, ip string, port int) Kademlia {
@@ -19,6 +20,7 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 	kademlia := Kademlia{
 		RoutingTable: NewRoutingTable(me),
 		Network:      NewNetwork(me.ID, ip, port),
+		Storage:      NewStorage(id),
 	}
 
 	return kademlia
