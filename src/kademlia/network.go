@@ -115,9 +115,11 @@ func (network *Network) SendFindContactMessage(contact *Contact, key *KademliaID
 
 func (network *Network) SendFindDataMessage(hash string) {
 	key := NewKademliaID(hash)
-	closest := network.Kademlia.RoutingTable.FindClosestContacts(key, 1)[0]
 
-	network.sendFindMessage(&closest, key, MSG_FIND_VALUE)
+	closest := network.Kademlia.RoutingTable.FindClosestContacts(key, 1)
+
+	fmt.Println("closest: ", closest)
+	network.sendFindMessage(&closest[0], key, MSG_FIND_VALUE)
 }
 
 func (network *Network) SendStoreMessage(data []byte) {

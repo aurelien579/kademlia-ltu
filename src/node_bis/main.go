@@ -4,18 +4,17 @@ import (
 	"kademlia"
 )
 
+const MY_ID = "0000000000000000000000000000000000000002"
+const MY_IP = "127.0.0.1"
+const MY_PORT = 3334
+
 func main() {
-	/*if len(os.Args) != 2 {
-	    fmt.Printf("Usage: %s <port>\n", os.Args[0])
-	    return
-	}*/
+	node := kademlia.NewKademlia(MY_ID, MY_IP, MY_PORT)
+	contact := kademlia.NewContact(kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"), "localhost:3333")
 
-	//port, _ := strconv.Atoi(os.Args[1])
+	node.RoutingTable.AddContact(contact)
 
-	contact := kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), "localhost:3333")
+	node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
 
-	kademlia := kademlia.NewKademlia("0000000000000000000000000000000000000002", "127.0.0.1", 3334)
-	//kademlia.Network.SendPingMessage(&contact)
-	kademlia.Network.SendFindContactMessage(&contact, contact.ID)
-	kademlia.Listen("127.0.0.1", 3334)
+	node.Listen(MY_IP, MY_PORT)
 }

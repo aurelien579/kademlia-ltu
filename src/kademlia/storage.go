@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type Storage struct {
@@ -11,27 +12,32 @@ type Storage struct {
 }
 
 func NewStorage(root string) Storage {
+	os.Mkdir(root, 0777)
 	return Storage{
 		Root: root,
 	}
 }
 
 func (storage *Storage) getPath(filename string) string {
-	return storage.Root + "/" + filename
+	return storage.Root + "/" + strings.ToLower(filename)
 }
 
 func (storage *Storage) Exists(filename string) bool {
-	if _, err := os.Stat(storage.getPath(filename)); !os.IsNotExist(err) {
-		return true
+	_, err := os.Stat(storage.getPath(filename))
+
+	fmt.Println("File: ", storage.getPath(filename))
+
+	if os.IsNotExist(err) {
+		return false
 	}
 
-	return false
+	return true
 }
 
 func (storage *Storage) Read(filename string) []byte {
 	bytes, err := ioutil.ReadFile(storage.getPath(filename))
 
-	if err == nil {
+	if err != nil {
 		fmt.Println("ERROR: ", err)
 		return nil
 	}

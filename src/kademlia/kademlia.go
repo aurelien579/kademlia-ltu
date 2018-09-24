@@ -23,6 +23,8 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 		Storage:      NewStorage(id),
 	}
 
+	kademlia.Network.Kademlia = &kademlia
+
 	return kademlia
 }
 
@@ -140,9 +142,7 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 		var contacts []ContactResult
 		err := decoder.Decode(&contacts)
 
-
 		//traiter les contacts
-
 
 		fmt.Println("Error: ", err)
 		fmt.Printf("Contacts received: %v\n", contacts)
@@ -166,6 +166,8 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 		decoder.Decode(&findArguments)
 
 		fmt.Printf("Argument received: %v\n", findArguments)
+
+		fmt.Println(findArguments.Key.String(), " exists ? ", kademlia.Storage.Exists(findArguments.Key.String()))
 
 		if kademlia.Storage.Exists(findArguments.Key.String()) {
 
@@ -200,8 +202,6 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 
 			udpConn.Close()
 
-
-
 		} else {
 
 			var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(findArguments.Key), int(findArguments.Count))
@@ -213,7 +213,10 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 		}
 
 	case MSG_RESPONSE:
+		content := make([]byte, 1024)
 
+		length, _ := udpConn.Read(content)
+		fmt.Println("Received: ", string(content[:length]))
 		//JE RECOIS UN FICHIER
 
 	}
