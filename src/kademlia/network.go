@@ -8,10 +8,13 @@ import (
 )
 
 type Network struct {
-	ID   *KademliaID
-	IP   uint32
-	Port uint16
+	ID       *KademliaID
+	IP       uint32
+	Port     uint16
+	Kademlia *Kademlia
 }
+
+const K uint8 = 20
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
@@ -78,7 +81,8 @@ func (network *Network) SendPingMessage(contact *Contact) {
 	connectAndSendHeader(contact, msg)
 }
 
-func (network *Network) SendFindContactMessage(contact *Contact) {
+/* Common function to SendFindDataMessage and SendFindContactMessage */
+func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findType uint8) {
 	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
 	conn, err := net.DialUDP("udp", nil, addr)
 
@@ -87,20 +91,27 @@ func (network *Network) SendFindContactMessage(contact *Contact) {
 		return
 	}
 
-	header := network.createHeader(MSG_REQUEST, MSG_FIND_NODES)
+	header := network.createHeader(MSG_REQUEST, findType)
 	encodeAndSend(conn, header)
 
 	findMessage := FindArguments{
-		Count: 20,
-		Key:   *contact.ID,
+		Count: K,
+		Key:   *key,
 	}
 	encodeAndSend(conn, findMessage)
 
 	conn.Close()
 }
 
+func (network *Network) SendFindContactMessage(contact *Contact, key *KademliaID) {
+	network.sendFindMessage(contact, key, MSG_FIND_NODES)
+}
+
 func (network *Network) SendFindDataMessage(hash string) {
-	// TODO
+	key := NewKademliaID(hash)
+	closest := network.Kademlia.RoutingTable.FindClosestContacts(key, 1)[0]
+
+	network.sendFindMessage(&closest, key, MSG_FIND_VALUE)
 }
 
 func (network *Network) SendStoreMessage(data []byte) {
