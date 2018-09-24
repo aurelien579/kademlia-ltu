@@ -29,6 +29,11 @@ type Header struct {
 	SubType uint8
 }
 
+type FindArguments struct {
+	Key   KademliaID
+	Count uint8
+}
+
 func NewNetwork(id *KademliaID, ip string, port int) Network {
 	return Network{
 		ID:   id,
@@ -47,11 +52,11 @@ func (network *Network) createHeader(typeId uint8, subTypeId uint8) Header {
 	}
 }
 
-func sendHeader(connection *net.UDPConn, header Header) {
+func encodeAndSend(c *net.UDPConn, value interface{}) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
-	encoder.Encode(header)
-	connection.Write(buffer.Bytes())
+	encoder.Encode(value)
+	c.Write(buffer.Bytes())
 }
 
 func connectAndSendHeader(contact *Contact, header Header) {
@@ -63,7 +68,7 @@ func connectAndSendHeader(contact *Contact, header Header) {
 		return
 	}
 
-	sendHeader(conn, header)
+	encodeAndSend(conn, header)
 
 	conn.Close()
 }
@@ -74,7 +79,24 @@ func (network *Network) SendPingMessage(contact *Contact) {
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact) {
-	// TODO
+	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
+	conn, err := net.DialUDP("udp", nil, addr)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	header := network.createHeader(MSG_REQUEST, MSG_FIND_NODES)
+	encodeAndSend(conn, header)
+
+	findMessage := FindArguments{
+		Count: 20,
+		Key:   *contact.ID,
+	}
+	encodeAndSend(conn, findMessage)
+
+	conn.Close()
 }
 
 func (network *Network) SendFindDataMessage(hash string) {
