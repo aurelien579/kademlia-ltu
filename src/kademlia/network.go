@@ -1,18 +1,18 @@
 package kademlia
 
 import (
-    "net"
-    "bytes"
-    "encoding/binary"
-    "encoding/gob"
-    "strconv"
-    "fmt"
+	"bytes"
+	"encoding/binary"
+	"encoding/gob"
+	"fmt"
+	"net"
+	"strconv"
 )
 
 type Network struct {
-    ID *KademliaID
-    IP uint32
-    Port uint16
+	ID   *KademliaID
+	IP   uint32
+	Port uint16
 }
 
 const MSG_REQUEST uint8 = 1
@@ -24,59 +24,59 @@ const MSG_FIND_VALUE uint8 = 3
 const MSG_STORE uint8 = 4
 
 type Header struct {
-    SrcID KademliaID
-    SrcIP uint32
-    SrcPort uint16
-    Type uint8      /* Request/Response */
-    SubType uint8
+	SrcID   KademliaID
+	SrcIP   uint32
+	SrcPort uint16
+	Type    uint8 /* Request/Response */
+	SubType uint8
 }
 
 func IPToLong(ip string) uint32 {
-    var long uint32
-    binary.Read(bytes.NewBuffer(net.ParseIP(ip).To4()), binary.BigEndian, &long)
-    return long
+	var long uint32
+	binary.Read(bytes.NewBuffer(net.ParseIP(ip).To4()), binary.BigEndian, &long)
+	return long
 }
 
 func IPToStr(ipInt uint32) string {
-    // need to do two bit shifting and “0xff” masking
-    var ipLong int64 = int64(ipInt)
-    
-    b0 := strconv.FormatInt((ipLong>>24)&0xff, 10)
-    b1 := strconv.FormatInt((ipLong>>16)&0xff, 10)
-    b2 := strconv.FormatInt((ipLong>>8)&0xff, 10)
-    b3 := strconv.FormatInt((ipLong & 0xff), 10)
-    return b0 + "." + b1 + "." + b2 + "." + b3
+	// need to do two bit shifting and “0xff” masking
+	var ipLong int64 = int64(ipInt)
+
+	b0 := strconv.FormatInt((ipLong>>24)&0xff, 10)
+	b1 := strconv.FormatInt((ipLong>>16)&0xff, 10)
+	b2 := strconv.FormatInt((ipLong>>8)&0xff, 10)
+	b3 := strconv.FormatInt((ipLong & 0xff), 10)
+	return b0 + "." + b1 + "." + b2 + "." + b3
 }
 
 func NewNetwork(id *KademliaID, ip string, port int) Network {
-    return Network{
-        ID: id,
-        IP: IPToLong(ip),
-        Port: uint16(port),
-    }
+	return Network{
+		ID:   id,
+		IP:   IPToLong(ip),
+		Port: uint16(port),
+	}
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
 	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
 	conn, err := net.DialUDP("udp", nil, addr)
-    
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    
-    var buffer bytes.Buffer
-    enc := gob.NewEncoder(&buffer)
-    msg := Header{
-        SrcID: *network.ID,
-        SrcIP: network.IP,
-        SrcPort: network.Port,
-        Type: MSG_REQUEST,
-        SubType: MSG_PING,
-    }
-    
-    enc.Encode(msg)
-    conn.Write(buffer.Bytes())
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	msg := Header{
+		SrcID:   *network.ID,
+		SrcIP:   network.IP,
+		SrcPort: network.Port,
+		Type:    MSG_REQUEST,
+		SubType: MSG_PING,
+	}
+
+	enc.Encode(msg)
+	conn.Write(buffer.Bytes())
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact) {
@@ -90,4 +90,3 @@ func (network *Network) SendFindDataMessage(hash string) {
 func (network *Network) SendStoreMessage(data []byte) {
 	// TODO
 }
-

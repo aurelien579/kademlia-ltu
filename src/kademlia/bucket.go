@@ -4,7 +4,7 @@ import (
 	"container/list"
 )
 
-//ceci est un putain de commentaire pour voir si ça marche 
+//ceci est un putain de commentaire pour voir si ça marche
 
 // bucket definition
 // contains a List
@@ -40,7 +40,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 	}
 }
 
-// GetContactAndCalcDistance returns an array of Contacts where 
+// GetContactAndCalcDistance returns an array of Contacts where
 // the distance has already been calculated
 func (bucket *bucket) GetContactAndCalcDistance(target *KademliaID) []Contact {
 	var contacts []Contact

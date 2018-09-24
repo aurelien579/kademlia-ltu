@@ -10,49 +10,49 @@ import (
 )
 
 type Kademlia struct {
-    RoutingTable *RoutingTable
-    Network Network
+	RoutingTable *RoutingTable
+	Network      Network
 }
 
 func NewKademlia(id string, ip string, port int) Kademlia {
-    me := NewContact(NewKademliaID(id), ip + strconv.Itoa(port))
-    kademlia := Kademlia{
-        RoutingTable: NewRoutingTable(me),
-        Network: NewNetwork(me.ID, ip, port),
-    }
-    
-    return kademlia
+	me := NewContact(NewKademliaID(id), ip+strconv.Itoa(port))
+	kademlia := Kademlia{
+		RoutingTable: NewRoutingTable(me),
+		Network:      NewNetwork(me.ID, ip, port),
+	}
+
+	return kademlia
 }
 
 func (kademlia *Kademlia) Listen(ip string, port int) {
-    udpAddr, _ := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(port))
-    
-    for {
-        udpConn, err := net.ListenUDP("udp", udpAddr)
-        
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        
-        inputBytes := make([]byte, 1024)
-        length, _ := udpConn.Read(inputBytes)
-        buf := bytes.NewBuffer(inputBytes[:length])
-        
-        decoder := gob.NewDecoder(buf)
-        var header Header
-        decoder.Decode(&header)
+	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 
-        fmt.Printf("Header received: %v\n", header)
-        fmt.Printf("Address: %s\n", IPToStr(header.SrcIP))
+	for {
+		udpConn, err := net.ListenUDP("udp", udpAddr)
 
-        switch header.SubType{
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-		case MSG_PING :
+		inputBytes := make([]byte, 1024)
+		length, _ := udpConn.Read(inputBytes)
+		buf := bytes.NewBuffer(inputBytes[:length])
+
+		decoder := gob.NewDecoder(buf)
+		var header Header
+		decoder.Decode(&header)
+
+		fmt.Printf("Header received: %v\n", header)
+		fmt.Printf("Address: %s\n", IPToStr(header.SrcIP))
+
+		switch header.SubType {
+
+		case MSG_PING:
 			//traiter le msgping
-		    kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID),IPToStr(header.SrcIP)))
+			kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
 
-			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP) + ":" + strconv.Itoa(int(header.SrcPort)))
+			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
 			conn, err := net.DialUDP("udp", nil, addr)
 
 			if err != nil {
@@ -63,36 +63,31 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 			var buffer bytes.Buffer
 			enc := gob.NewEncoder(&buffer)
 			msg := Header{
-				SrcID: *kademlia.Network.ID,
-				SrcIP: kademlia.Network.IP,
+				SrcID:   *kademlia.Network.ID,
+				SrcIP:   kademlia.Network.IP,
 				SrcPort: kademlia.Network.Port,
-				Type: MSG_RESPONSE,
+				Type:    MSG_RESPONSE,
 				SubType: MSG_PING,
 			}
-			
-            fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
+
+			fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
 
 			enc.Encode(msg)
-			
-			time.Sleep(1*time.Second)
-			
+
+			time.Sleep(1 * time.Second)
+
 			conn.Write(buffer.Bytes())
 
+		case MSG_FIND_NODES:
 
+		case MSG_FIND_VALUE:
 
-		case MSG_FIND_NODES :
-
-		case MSG_FIND_VALUE :
-
-		case MSG_STORE :
-
+		case MSG_STORE:
 
 		}
 
-
-        
-        // TODO: gérer le message dans un nouveau thread + AddContact
-    }
+		// TODO: gérer le message dans un nouveau thread + AddContact
+	}
 }
 
 func (kademlia *Kademlia) LookupContact(target *Contact) {

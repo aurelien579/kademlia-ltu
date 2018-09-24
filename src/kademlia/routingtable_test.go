@@ -20,4 +20,3 @@ func TestRoutingTable(t *testing.T) {
 		fmt.Println(contacts[i].String())
 	}
 }
-
