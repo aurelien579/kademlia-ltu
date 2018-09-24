@@ -86,6 +86,7 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 
 		}
 
+		udpConn.Close()
 		// TODO: gérer le message dans un nouveau thread + AddContact
 	}
 }

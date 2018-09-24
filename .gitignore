@@ -1,5 +1,7 @@
 node
 node.exe
+node_bis
+node_bis.exe
 
 .idea/*
 pkg/*
