@@ -46,43 +46,67 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 		fmt.Printf("Header received: %v\n", header)
 		fmt.Printf("Address: %s\n", IPToStr(header.SrcIP))
 
-		switch header.SubType {
+		switch header.Type{
 
-		case MSG_PING:
-			//traiter le msgping
-			kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
+		case MSG_REQUEST:
 
-			addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
-			conn, err := net.DialUDP("udp", nil, addr)
+			switch header.SubType {
 
-			if err != nil {
-				fmt.Println(err)
-				return
+			case MSG_PING:
+				//traiter le msgping
+				kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
+
+				addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
+				conn, err := net.DialUDP("udp", nil, addr)
+
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				var buffer bytes.Buffer
+				enc := gob.NewEncoder(&buffer)
+				msg := Header{
+					SrcID:   *kademlia.Network.ID,
+					SrcIP:   kademlia.Network.IP,
+					SrcPort: kademlia.Network.Port,
+					Type:    MSG_RESPONSE,
+					SubType: MSG_PING,
+				}
+
+				fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
+
+				enc.Encode(msg)
+
+				time.Sleep(1 * time.Second)
+
+				conn.Write(buffer.Bytes())
+
+			case MSG_FIND_NODES:
+
+			case MSG_FIND_VALUE:
+
+			case MSG_STORE:
+
 			}
 
-			var buffer bytes.Buffer
-			enc := gob.NewEncoder(&buffer)
-			msg := Header{
-				SrcID:   *kademlia.Network.ID,
-				SrcIP:   kademlia.Network.IP,
-				SrcPort: kademlia.Network.Port,
-				Type:    MSG_RESPONSE,
-				SubType: MSG_PING,
+		case MSG_RESPONSE:
+
+			switch header.SubType {
+
+			case MSG_PING:
+				//traiter le msgping
+				kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
+
+			case MSG_FIND_NODES:
+
+			case MSG_FIND_VALUE:
+
+			case MSG_STORE:
+
 			}
 
-			fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
 
-			enc.Encode(msg)
-
-			time.Sleep(1 * time.Second)
-
-			conn.Write(buffer.Bytes())
-
-		case MSG_FIND_NODES:
-
-		case MSG_FIND_VALUE:
-
-		case MSG_STORE:
 
 		}
 
