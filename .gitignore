@@ -3,3 +3,6 @@ node.exe
 
 .idea/*
 pkg/*
+bin/*
+src/golang.org/*
+src/github.com/*

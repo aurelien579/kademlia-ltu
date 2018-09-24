@@ -54,7 +54,7 @@ func sendHeader(connection *net.UDPConn, header Header) {
 	connection.Write(buffer.Bytes())
 }
 
-func (network *Network) SendPingMessage(contact *Contact) {
+func connectAndSendHeader(contact *Contact, header Header) {
 	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
 	conn, err := net.DialUDP("udp", nil, addr)
 
@@ -63,10 +63,14 @@ func (network *Network) SendPingMessage(contact *Contact) {
 		return
 	}
 
-	msg := network.createHeader(MSG_REQUEST, MSG_PING)
-	sendHeader(conn, msg)
+	sendHeader(conn, header)
 
 	conn.Close()
+}
+
+func (network *Network) SendPingMessage(contact *Contact) {
+	msg := network.createHeader(MSG_REQUEST, MSG_PING)
+	connectAndSendHeader(contact, msg)
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact) {
