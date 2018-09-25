@@ -50,7 +50,7 @@ func NewNetwork(id *KademliaID, ip string, port int) Network {
 	}
 }
 
-func (network *Network) createHeader(typeId uint8, subTypeId uint8) Header {
+func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 	return Header{
 		SrcID:   *network.ID,
 		SrcIP:   network.IP,
@@ -60,14 +60,29 @@ func (network *Network) createHeader(typeId uint8, subTypeId uint8) Header {
 	}
 }
 
-func encodeAndSend(c *net.UDPConn, value interface{}) {
+func EncodeAndSend(c *net.UDPConn, value interface{}) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	encoder.Encode(value)
 	c.Write(buffer.Bytes())
 }
 
-func connectAndSendHeader(contact *Contact, header Header) {
+func ReceiveAndDecode(c *net.UDPConn, value interface{}) {
+	inputBytes := make([]byte, 1024)
+	length, _ := c.Read(inputBytes)
+	buf := bytes.NewBuffer(inputBytes[:length])
+
+	decoder := gob.NewDecoder(buf)
+	decoder.Decode(value)
+}
+
+func ReceiveHeader(c *net.UDPConn) Header {
+	var header Header
+	ReceiveAndDecode(c, &header)
+	return header
+}
+
+func ConnectAndSendHeader(contact *Contact, header Header) {
 	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
 	conn, err := net.DialUDP("udp", nil, addr)
 
@@ -76,14 +91,14 @@ func connectAndSendHeader(contact *Contact, header Header) {
 		return
 	}
 
-	encodeAndSend(conn, header)
+	EncodeAndSend(conn, header)
 
 	conn.Close()
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
-	msg := network.createHeader(MSG_REQUEST, MSG_PING)
-	connectAndSendHeader(contact, msg)
+	msg := NewHeader(network, MSG_REQUEST, MSG_PING)
+	ConnectAndSendHeader(contact, msg)
 }
 
 /* Common function to SendFindDataMessage and SendFindContactMessage */
@@ -96,15 +111,15 @@ func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findT
 		return
 	}
 
-	header := network.createHeader(MSG_REQUEST, findType)
+	header := NewHeader(network, MSG_REQUEST, findType)
 	fmt.Println("Sending: ", header)
-	encodeAndSend(conn, header)
+	EncodeAndSend(conn, header)
 
 	findMessage := FindArguments{
 		Count: K,
 		Key:   *key,
 	}
-	encodeAndSend(conn, findMessage)
+	EncodeAndSend(conn, findMessage)
 
 	conn.Close()
 }

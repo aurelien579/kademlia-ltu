@@ -13,6 +13,9 @@ type Storage struct {
 
 func NewStorage(root string) Storage {
 	os.Mkdir(root, 0777)
+	root = "data/" + root
+	os.Mkdir(root, 0777)
+
 	return Storage{
 		Root: root,
 	}
@@ -24,14 +27,7 @@ func (storage *Storage) getPath(filename string) string {
 
 func (storage *Storage) Exists(filename string) bool {
 	_, err := os.Stat(storage.getPath(filename))
-
-	fmt.Println("File: ", storage.getPath(filename))
-
-	if os.IsNotExist(err) {
-		return false
-	}
-
-	return true
+	return !os.IsNotExist(err)
 }
 
 func (storage *Storage) Read(filename string) []byte {
