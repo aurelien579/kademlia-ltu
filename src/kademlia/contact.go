@@ -3,6 +3,7 @@ package kademlia
 import (
 	"fmt"
 	"sort"
+	"strconv"
 )
 
 // Contact definition
@@ -16,6 +17,10 @@ type Contact struct {
 // NewContact returns a new instance of a Contact
 func NewContact(id *KademliaID, address string) Contact {
 	return Contact{id, address, nil}
+}
+
+func ContactFromHeader(header *Header) Contact {
+	return NewContact(&(header.SrcID), IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
 }
 
 // CalcDistance calculates the distance to the target and

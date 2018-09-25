@@ -1,6 +1,8 @@
 package kademlia
 
 import (
+	"container/list"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -8,10 +10,21 @@ import (
 )
 
 type Kademlia struct {
-	RoutingTable *RoutingTable
-	Network      Network
-	Storage      Storage
+	RoutingTable     *RoutingTable
+	Network          Network
+	Storage          Storage
+	ResponseHandlers *list.List
 }
+
+type ResponseHandler struct {
+	Contact *Contact
+	F       ResponseHandlerFunc
+	ReqType uint8
+}
+
+type ResponseHandlerFunc func(*Contact, interface{})
+type PingResponseHandler func(*Contact)
+type FindNodesResponseHandler func(*Contact, []ContactResult)
 
 func NewKademlia(id string, ip string, port int) Kademlia {
 	me := NewContact(NewKademliaID(id), ip+strconv.Itoa(port))
@@ -23,20 +36,62 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 
 	kademlia.Network.Kademlia = &kademlia
 
+	kademlia.ResponseHandlers = list.New()
+
 	return kademlia
+}
+
+func (kademlia *Kademlia) RegisterHandler(contact *Contact, reqType uint8, f ResponseHandlerFunc) {
+	handler := ResponseHandler{
+		Contact: contact,
+		ReqType: reqType,
+		F:       f,
+	}
+
+	kademlia.ResponseHandlers.PushBack(handler)
+}
+
+func (kademlia *Kademlia) FindHandler(contact *Contact, reqType uint8) (ResponseHandler, error) {
+	for e := kademlia.ResponseHandlers.Front(); e != nil; e = e.Next() {
+		handler := e.Value.(ResponseHandler)
+
+		if handler.Contact.Address == contact.Address &&
+			*handler.Contact.ID == *contact.ID &&
+			handler.ReqType == reqType {
+
+			return handler, nil
+		}
+	}
+
+	return ResponseHandler{}, errors.New("Can't find handler")
+}
+
+func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
+	contact := ContactFromHeader(header)
+	handler, err := kademlia.FindHandler(&contact, header.SubType)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	handler.F(&contact, val)
 }
 
 func (kademlia *Kademlia) Listen(ip string, port int) {
 	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 
 	for {
-		udpConn, _ := net.ListenUDP("udp", udpAddr)
+		udpConn, err := net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
 		header := ReceiveHeader(udpConn)
 
 		fmt.Printf("Header received: %v\n", header)
 
-		kademlia.RoutingTable.AddContact(NewContact(&(header.SrcID), IPToStr(header.SrcIP)))
+		kademlia.RoutingTable.AddContact(ContactFromHeader(&header))
 
 		switch header.SubType {
 		case MSG_PING:
@@ -75,6 +130,8 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 		fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
 
 		EncodeAndSend(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
+	} else {
+		kademlia.CallHandler(&header, nil)
 	}
 }
 

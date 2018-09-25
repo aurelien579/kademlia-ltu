@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"kademlia"
 )
 
@@ -10,9 +11,13 @@ const MY_PORT = 3334
 
 func main() {
 	node := kademlia.NewKademlia(MY_ID, MY_IP, MY_PORT)
-	contact := kademlia.NewContact(kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"), "localhost:3333")
+	contact := kademlia.NewContact(kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"), "127.0.0.1:3333")
 
 	node.RoutingTable.AddContact(contact)
+
+	node.RegisterHandler(&contact, kademlia.MSG_PING, func(contact *kademlia.Contact, val interface{}) {
+		fmt.Println("Ping back!!!")
+	})
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")

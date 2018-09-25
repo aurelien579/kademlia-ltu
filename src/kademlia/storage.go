@@ -12,7 +12,6 @@ type Storage struct {
 }
 
 func NewStorage(root string) Storage {
-	os.Mkdir(root, 0777)
 	root = "data/" + root
 	os.Mkdir(root, 0777)
 
