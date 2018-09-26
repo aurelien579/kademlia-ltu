@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const ALPHA = 3
+const ALPHA = 1
 
 type Kademlia struct {
 	RoutingTable     *RoutingTable
@@ -242,7 +242,7 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 		}
 
 		// TODO: check undone
-		target, err := l.GetClosestUnDone(int(K))
+		target, err := l.GetClosestUnTook(int(K))
 		if err != nil {
 			fmt.Println(err)
 			*done = true
@@ -251,8 +251,10 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 
 		fmt.Printf("Thread %d target: %v\n", i, target)
 
-		kademlia.RegisterHandler(&target, MSG_FIND_NODES, func(c *Contact, val interface{}) {
+		kademlia.RegisterHandler(target, MSG_FIND_NODES, func(c *Contact, val interface{}) {
 			results := val.([]Contact)
+
+			target.State = DONE
 
 			fmt.Printf("Thread %d results: %v\n", i, results)
 
@@ -264,7 +266,7 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 			}
 		})
 
-		kademlia.Network.SendFindContactMessage(&target, key)
+		kademlia.Network.SendFindContactMessage(target, key)
 	}
 
 	wg.Done()
