@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 )
 
 // Contact definition
@@ -12,11 +13,12 @@ type Contact struct {
 	ID       *KademliaID
 	Address  string
 	distance *KademliaID
+	Done bool
 }
 
 // NewContact returns a new instance of a Contact
 func NewContact(id *KademliaID, address string) Contact {
-	return Contact{id, address, nil}
+	return Contact{id, address, nil, false}
 }
 
 func ContactFromHeader(header *Header) Contact {
@@ -43,6 +45,7 @@ func (contact *Contact) String() string {
 // stores an array of Contacts
 type ContactCandidates struct {
 	contacts []Contact
+	mutex sync.Mutex
 }
 
 // Append an array of Contacts to the ContactCandidates
@@ -75,4 +78,13 @@ func (candidates *ContactCandidates) Swap(i, j int) {
 // the Contact at index j
 func (candidates *ContactCandidates) Less(i, j int) bool {
 	return candidates.contacts[i].Closer(&candidates.contacts[j])
+}
+
+func (candidates *ContactCandidates) Finish () bool{
+	for i:=0; i<candidates.Len(); i++{
+		if !candidates.contacts[i].Done{
+			return false
+		}
+	}
+	return true
 }
