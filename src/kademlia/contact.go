@@ -66,7 +66,7 @@ func (candidates *ContactCandidates) Append(contacts []Contact) {
 
 func (contact Contact) IsIn(candidates ContactCandidates) bool {
 	for i := 0; i < len(candidates.contacts); i++ {
-		if contact.ID == candidates.contacts[i].ID {
+		if *contact.ID == *candidates.contacts[i].ID {
 			return true
 		}
 	}
