@@ -8,7 +8,6 @@ import (
 	"sync"
 )
 
-
 const UNDONE int = 0
 const DONE int = 1
 const TOOK int = 2
@@ -19,7 +18,7 @@ type Contact struct {
 	ID       *KademliaID
 	Address  string
 	distance *KademliaID
-	State     int
+	State    int
 }
 
 // NewContact returns a new instance of a Contact
@@ -57,8 +56,21 @@ type ContactCandidates struct {
 // Append an array of Contacts to the ContactCandidates
 func (candidates *ContactCandidates) Append(contacts []Contact) {
 	candidates.mutex.Lock()
-	candidates.contacts = append(candidates.contacts, contacts...)
+	for i := 0; i < len(contacts); i++ {
+		if !contacts[i].IsIn(*candidates) {
+			candidates.contacts = append(candidates.contacts, contacts[i])
+		}
+	}
 	candidates.mutex.Unlock()
+}
+
+func (contact Contact) IsIn(candidates ContactCandidates) bool {
+	for i := 0; i < len(candidates.contacts); i++ {
+		if contact.ID == candidates.contacts[i].ID {
+			return true
+		}
+	}
+	return false
 }
 
 // GetContacts returns the first count number of Contacts
@@ -90,7 +102,7 @@ func (candidates *ContactCandidates) Less(i, j int) bool {
 
 func (candidates *ContactCandidates) Finish(k int) bool {
 	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
-		if candidates.contacts[i].State != DONE{
+		if candidates.contacts[i].State != DONE {
 			return false
 		}
 	}
@@ -110,7 +122,7 @@ func (candidates *ContactCandidates) GetClosestUnTook(k int) (*Contact, error) {
 
 	candidates.mutex.Lock()
 	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
-		if candidates.contacts[i].State ==UNDONE {
+		if candidates.contacts[i].State == UNDONE {
 			candidates.contacts[i].State = TOOK
 			candidates.mutex.Unlock()
 			return &candidates.contacts[i], nil
