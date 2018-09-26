@@ -23,8 +23,6 @@ type ResponseHandler struct {
 }
 
 type ResponseHandlerFunc func(*Contact, interface{})
-type PingResponseHandler func(*Contact)
-type FindNodesResponseHandler func(*Contact, []ContactResult)
 
 func NewKademlia(id string, ip string, port int) Kademlia {
 	me := NewContact(NewKademliaID(id), ip+strconv.Itoa(port))
@@ -87,7 +85,8 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 			continue
 		}
 
-		header := ReceiveHeader(udpConn)
+		var header Header
+		Decode(udpConn, &header)
 
 		fmt.Printf("Header received: %v\n", header)
 
@@ -129,7 +128,7 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 		fmt.Printf("Ping recu de: %s, %d\n", IPToStr(header.SrcIP), header.SrcPort)
 
-		EncodeAndSend(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
+		Encode(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
 	} else {
 		kademlia.CallHandler(&header, nil)
 	}
@@ -143,7 +142,7 @@ func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
 		return
 	}
 
-	EncodeAndSend(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_NODES))
+	Encode(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_NODES))
 
 	time.Sleep(1 * time.Second)
 
@@ -158,14 +157,14 @@ func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
 
 	fmt.Println("Sending: ", contactsResults)
 
-	EncodeAndSend(conn, contactsResults)
+	Encode(conn, contactsResults)
 }
 
 func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 	switch header.Type {
 	case MSG_REQUEST:
 		var findArguments FindArguments
-		ReceiveAndDecode(udpConn, &findArguments)
+		Decode(udpConn, &findArguments)
 
 		fmt.Printf("Argument received: %v\n", findArguments)
 
@@ -173,7 +172,7 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 		kademlia.SendContacts(header, contacts)
 	case MSG_RESPONSE:
 		var contacts []ContactResult
-		ReceiveAndDecode(udpConn, &contacts)
+		Decode(udpConn, &contacts)
 
 		//TODO: traiter les contacts
 
@@ -190,7 +189,7 @@ func (kademlia *Kademlia) SendFile(header Header, filename string) {
 	}
 
 	msg := NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_VALUE)
-	EncodeAndSend(conn, msg)
+	Encode(conn, msg)
 
 	time.Sleep(1 * time.Second)
 
@@ -203,7 +202,7 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 	switch header.Type {
 	case MSG_REQUEST:
 		var findArguments FindArguments
-		ReceiveAndDecode(udpConn, &findArguments)
+		Decode(udpConn, &findArguments)
 		key := findArguments.Key
 
 		fmt.Printf("Argument received: %v\n", findArguments)

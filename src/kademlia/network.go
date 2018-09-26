@@ -60,14 +60,14 @@ func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 	}
 }
 
-func EncodeAndSend(c *net.UDPConn, value interface{}) {
+func Encode(c *net.UDPConn, value interface{}) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	encoder.Encode(value)
 	c.Write(buffer.Bytes())
 }
 
-func ReceiveAndDecode(c *net.UDPConn, value interface{}) {
+func Decode(c *net.UDPConn, value interface{}) {
 	inputBytes := make([]byte, 1024)
 	length, _ := c.Read(inputBytes)
 	buf := bytes.NewBuffer(inputBytes[:length])
@@ -76,13 +76,7 @@ func ReceiveAndDecode(c *net.UDPConn, value interface{}) {
 	decoder.Decode(value)
 }
 
-func ReceiveHeader(c *net.UDPConn) Header {
-	var header Header
-	ReceiveAndDecode(c, &header)
-	return header
-}
-
-func ConnectAndSendHeader(contact *Contact, header Header) {
+func (network *Network) SendPingMessage(contact *Contact) {
 	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
 	conn, err := net.DialUDP("udp", nil, addr)
 
@@ -91,14 +85,9 @@ func ConnectAndSendHeader(contact *Contact, header Header) {
 		return
 	}
 
-	EncodeAndSend(conn, header)
+	Encode(conn, NewHeader(network, MSG_REQUEST, MSG_PING))
 
 	conn.Close()
-}
-
-func (network *Network) SendPingMessage(contact *Contact) {
-	msg := NewHeader(network, MSG_REQUEST, MSG_PING)
-	ConnectAndSendHeader(contact, msg)
 }
 
 /* Common function to SendFindDataMessage and SendFindContactMessage */
@@ -111,15 +100,11 @@ func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findT
 		return
 	}
 
-	header := NewHeader(network, MSG_REQUEST, findType)
-	fmt.Println("Sending: ", header)
-	EncodeAndSend(conn, header)
-
-	findMessage := FindArguments{
+	Encode(conn, NewHeader(network, MSG_REQUEST, findType))
+	Encode(conn, FindArguments{
 		Count: K,
 		Key:   *key,
-	}
-	EncodeAndSend(conn, findMessage)
+	})
 
 	conn.Close()
 }

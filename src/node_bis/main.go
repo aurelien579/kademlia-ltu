@@ -11,7 +11,8 @@ const MY_PORT = 3334
 
 func main() {
 	node := kademlia.NewKademlia(MY_ID, MY_IP, MY_PORT)
-	contact := kademlia.NewContact(kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"), "127.0.0.1:3333")
+	contact_id := kademlia.NewKademliaID("000000000000000000000000000000000000FFFF")
+	contact := kademlia.NewContact(contact_id, "127.0.0.1:3333")
 
 	node.RoutingTable.AddContact(contact)
 
