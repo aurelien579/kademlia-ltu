@@ -1,6 +1,7 @@
 package kademlia
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -13,7 +14,7 @@ type Contact struct {
 	ID       *KademliaID
 	Address  string
 	distance *KademliaID
-	Done bool
+	Done     bool
 }
 
 // NewContact returns a new instance of a Contact
@@ -45,7 +46,7 @@ func (contact *Contact) String() string {
 // stores an array of Contacts
 type ContactCandidates struct {
 	contacts []Contact
-	mutex sync.Mutex
+	mutex    sync.Mutex
 }
 
 // Append an array of Contacts to the ContactCandidates
@@ -80,17 +81,17 @@ func (candidates *ContactCandidates) Less(i, j int) bool {
 	return candidates.contacts[i].Closer(&candidates.contacts[j])
 }
 
-func (candidates *ContactCandidates) Finish (k int) bool{
-	for i:=0; i<Min(k,len(candidates.contacts)); i++{
-		if !candidates.contacts[i].Done{
+func (candidates *ContactCandidates) Finish(k int) bool {
+	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
+		if !candidates.contacts[i].Done {
 			return false
 		}
 	}
 	return true
 }
 
-func Min(a,b int) int{
-	if a<b {
+func Min(a, b int) int {
+	if a < b {
 		return a
 	} else {
 		return b
@@ -98,13 +99,11 @@ func Min(a,b int) int{
 
 }
 
-func (candidates *ContactCandidates) GetClosestUnDone (k int) interface{}{
-	for i:=0; i<Min(k,len(candidates.contacts)); i++{
-		if !candidates.contacts[i].Done{
-			return candidates.contacts[i]
+func (candidates *ContactCandidates) GetClosestUnDone(k int) (Contact, error) {
+	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
+		if !candidates.contacts[i].Done {
+			return candidates.contacts[i], nil
 		}
 	}
-	return nil
+	return Contact{}, errors.New("Can't find undone contact")
 }
-
-

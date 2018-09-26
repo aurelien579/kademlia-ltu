@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -230,8 +231,66 @@ func (kademlia *Kademlia) HandleStore(header Header) {
 
 }
 
+func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCandidates, key *KademliaID, done *bool) {
+	fmt.Printf("Thread %d starting\n", i)
+
+	for !*done {
+		if l.Len() == 0 {
+			fmt.Println("No candidates")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		// TODO: check undone
+		target, err := l.GetClosestUnDone(int(K))
+		if err != nil {
+			fmt.Println(err)
+			*done = true
+			break
+		}
+
+		fmt.Printf("Thread %d target: %v\n", i, target)
+
+		kademlia.RegisterHandler(&target, MSG_FIND_NODES, func(c *Contact, val interface{}) {
+			results := val.([]Contact)
+
+			fmt.Printf("Thread %d results: %v\n", i, results)
+
+			l.Append(results)
+			l.Sort()
+
+			if l.Finish(int(K)) {
+				*done = true
+			}
+		})
+
+		kademlia.Network.SendFindContactMessage(&target, key)
+	}
+
+	wg.Done()
+
+	fmt.Printf("Thread %d done\n", i)
+}
+
 func (kademlia *Kademlia) LookupContact(target *Contact) {
-	// TODO
+	time.Sleep(1 * time.Second)
+
+	var wg sync.WaitGroup
+	var candidates ContactCandidates
+	done := false
+	closestKnown := kademlia.RoutingTable.FindClosestContacts(target.ID, ALPHA)
+
+	fmt.Printf("Closest known: %v\n", closestKnown)
+
+	candidates.Append(closestKnown)
+
+	wg.Add(ALPHA)
+	for i := 0; i < ALPHA; i++ {
+		go kademlia.lookupThread(i, &wg, &candidates, target.ID, &done)
+	}
+	wg.Wait()
+
+	fmt.Printf("Lookup done! Results: %v\n", candidates.contacts)
 }
 
 func (kademlia *Kademlia) LookupData(hash string) {
