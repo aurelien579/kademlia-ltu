@@ -50,7 +50,9 @@ type ContactCandidates struct {
 
 // Append an array of Contacts to the ContactCandidates
 func (candidates *ContactCandidates) Append(contacts []Contact) {
+	candidates.mutex.Lock()
 	candidates.contacts = append(candidates.contacts, contacts...)
+	candidates.mutex.Unlock()
 }
 
 // GetContacts returns the first count number of Contacts
@@ -99,11 +101,16 @@ func Min(a,b int) int{
 }
 
 func (candidates *ContactCandidates) GetClosestUnDone (k int) interface{}{
+
+	candidates.mutex.Lock()
 	for i:=0; i<Min(k,len(candidates.contacts)); i++{
 		if !candidates.contacts[i].Done{
+			candidates.contacts[i].Done = true
+			candidates.mutex.Unlock()
 			return candidates.contacts[i]
 		}
 	}
+	candidates.mutex.Unlock()
 	return nil
 }
 
