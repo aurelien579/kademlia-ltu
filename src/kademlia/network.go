@@ -14,7 +14,7 @@ type Network struct {
 	Kademlia *Kademlia
 }
 
-const K uint8 = 20
+const K uint8 = 2
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2

@@ -24,7 +24,7 @@ func main() {
 	if contactPort != 0 {
 		contact := kademlia.NewKademlia(os.Args[3], MY_IP, contactPort)
 
-		node.RoutingTable.AddContact(kademlia.NewContact(contact.RoutingTable.Me.ID, "127.0.0.1"+os.Args[4]))
+		node.RoutingTable.AddContact(kademlia.NewContact(contact.RoutingTable.Me.ID, "127.0.0.1:"+os.Args[4]))
 	}
 
 	//node.Storage.Store("000000000000000000000000000000000000FFFF", []byte("bonjour"))

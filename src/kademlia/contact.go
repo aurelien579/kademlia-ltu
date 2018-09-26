@@ -43,7 +43,7 @@ func (contact *Contact) Closer(otherContact *Contact) bool {
 
 // String returns a simple string representation of a Contact
 func (contact *Contact) String() string {
-	return fmt.Sprintf(`contact("%s", "%s")`, contact.ID, contact.Address)
+	return fmt.Sprintf(`contact("%s", "%s", "%s", %d)`, contact.ID, contact.Address, contact.distance, contact.State)
 }
 
 // ContactCandidates definition
@@ -51,6 +51,18 @@ func (contact *Contact) String() string {
 type ContactCandidates struct {
 	contacts []Contact
 	mutex    sync.Mutex
+}
+
+func (c *ContactCandidates) String() string {
+	s := "[\n"
+
+	for _, contact := range c.contacts {
+		s += contact.String() + ",\n"
+	}
+
+	s += "]\n"
+
+	return s
 }
 
 // Append an array of Contacts to the ContactCandidates
