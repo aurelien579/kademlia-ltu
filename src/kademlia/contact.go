@@ -1,6 +1,7 @@
 package kademlia
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -100,16 +101,16 @@ func Min(a, b int) int {
 
 }
 
-func (candidates *ContactCandidates) GetClosestUnDone(k int) interface{} {
+func (candidates *ContactCandidates) GetClosestUnDone(k int) (Contact, error) {
 
 	candidates.mutex.Lock()
 	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
 		if !candidates.contacts[i].Done {
 			candidates.contacts[i].Done = true
 			candidates.mutex.Unlock()
-			return candidates.contacts[i]
+			return candidates.contacts[i], nil
 		}
 	}
 	candidates.mutex.Unlock()
-	return nil
+	return Contact{}, errors.New("Can't find contact")
 }
