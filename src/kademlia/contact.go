@@ -80,11 +80,31 @@ func (candidates *ContactCandidates) Less(i, j int) bool {
 	return candidates.contacts[i].Closer(&candidates.contacts[j])
 }
 
-func (candidates *ContactCandidates) Finish () bool{
-	for i:=0; i<candidates.Len(); i++{
+func (candidates *ContactCandidates) Finish (k int) bool{
+	for i:=0; i<Min(k,len(candidates.contacts)); i++{
 		if !candidates.contacts[i].Done{
 			return false
 		}
 	}
 	return true
 }
+
+func Min(a,b int) int{
+	if a<b {
+		return a
+	} else {
+		return b
+	}
+
+}
+
+func (candidates *ContactCandidates) GetClosestUnDone (k int) interface{}{
+	for i:=0; i<Min(k,len(candidates.contacts)); i++{
+		if !candidates.contacts[i].Done{
+			return candidates.contacts[i]
+		}
+	}
+	return nil
+}
+
+
