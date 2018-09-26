@@ -21,7 +21,7 @@ func main() {
 	})
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
-	node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
-	//node.Network.SendPingMessage(&contact)
+	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
+	node.Network.SendPingMessage(&contact)
 	node.Listen(MY_IP, MY_PORT)
 }

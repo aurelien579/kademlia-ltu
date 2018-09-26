@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const ALPHA = 3
+
 type Kademlia struct {
 	RoutingTable     *RoutingTable
 	Network          Network
@@ -73,6 +75,8 @@ func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
 	}
 
 	handler.F(&contact, val)
+
+	// TODO: delete handler
 }
 
 func (kademlia *Kademlia) Listen(ip string, port int) {
