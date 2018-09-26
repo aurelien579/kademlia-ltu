@@ -8,18 +8,23 @@ import (
 	"sync"
 )
 
+
+const UNDONE int = 0
+const DONE int = 1
+const TOOK int = 2
+
 // Contact definition
 // stores the KademliaID, the ip address and the distance
 type Contact struct {
 	ID       *KademliaID
 	Address  string
 	distance *KademliaID
-	Done     bool
+	State     int
 }
 
 // NewContact returns a new instance of a Contact
 func NewContact(id *KademliaID, address string) Contact {
-	return Contact{id, address, nil, false}
+	return Contact{id, address, nil, UNDONE}
 }
 
 func ContactFromHeader(header *Header) Contact {
@@ -85,7 +90,7 @@ func (candidates *ContactCandidates) Less(i, j int) bool {
 
 func (candidates *ContactCandidates) Finish(k int) bool {
 	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
-		if !candidates.contacts[i].Done {
+		if candidates.contacts[i].State != DONE{
 			return false
 		}
 	}
@@ -101,16 +106,16 @@ func Min(a, b int) int {
 
 }
 
-func (candidates *ContactCandidates) GetClosestUnDone(k int) (Contact, error) {
+func (candidates *ContactCandidates) GetClosestUnTook(k int) (*Contact, error) {
 
 	candidates.mutex.Lock()
 	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
-		if !candidates.contacts[i].Done {
-			candidates.contacts[i].Done = true
+		if candidates.contacts[i].State ==UNDONE {
+			candidates.contacts[i].State = TOOK
 			candidates.mutex.Unlock()
-			return candidates.contacts[i], nil
+			return &candidates.contacts[i], nil
 		}
 	}
 	candidates.mutex.Unlock()
-	return Contact{}, errors.New("Can't find contact")
+	return &Contact{}, errors.New("Can't find contact")
 }
