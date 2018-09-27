@@ -52,7 +52,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 			go func() {
 				<-timer2.C
 				
-				node.DeleteHandler(&olderKnown, MSG_PING)
+				bucket.node.DeleteHandler(&olderKnown, MSG_PING)
 				fmt.Println("Timeout")
 				bucket.list.Remove(bucket.list.Back())
 				bucket.list.PushFront(contact)
