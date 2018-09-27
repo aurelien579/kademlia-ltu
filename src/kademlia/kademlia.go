@@ -42,6 +42,10 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 
 	kademlia.ResponseHandlers = list.New()
 
+	for i := 0; i < IDLength*8; i++ {
+		kademlia.RoutingTable.Buckets[i].node = &kademlia
+	}
+
 	return kademlia
 }
 
