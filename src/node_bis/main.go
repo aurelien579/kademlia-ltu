@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"kademlia"
 )
@@ -26,6 +27,11 @@ func main() {
 	for _, c := range node.RoutingTable.FindClosestContacts(node.RoutingTable.Me.ID, 50) {
 		fmt.Println(c)
 	}
+
+	fmt.Println("\n\n\n\n")
+
+	bytes, _ := hex.DecodeString("BONJOURRRRR")
+	node.Store(bytes)
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")

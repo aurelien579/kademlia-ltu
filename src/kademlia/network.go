@@ -14,7 +14,7 @@ type Network struct {
 	Kademlia *Kademlia
 }
 
-const K uint8 = 20
+const K uint8 = 2
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
@@ -35,6 +35,11 @@ type Header struct {
 type FindArguments struct {
 	Key   KademliaID
 	Count uint8
+}
+
+type StoreArguments struct {
+	Key    KademliaID
+	Length int
 }
 
 type ContactResult struct {
@@ -122,6 +127,24 @@ func (network *Network) SendFindDataMessage(hash string) {
 	network.sendFindMessage(&closest[0], key, MSG_FIND_VALUE)
 }
 
-func (network *Network) SendStoreMessage(contact *Contact, data []byte) {
-	// TODO
+func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data []byte) {
+	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
+	conn, err := net.DialUDP("udp", nil, addr)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Printf("Sending store to: %v\n", contact)
+
+	Encode(conn, NewHeader(network, MSG_REQUEST, MSG_STORE))
+	Encode(conn, StoreArguments{
+		Key:    *key,
+		Length: len(data),
+	})
+
+	conn.Write(data)
+
+	conn.Close()
 }
