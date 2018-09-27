@@ -19,6 +19,8 @@ func main() {
 		fmt.Println("Ping back!!!")
 	})*/
 
+	Bootstrap(node, contact)
+
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
 	//node.Network.SendPingMessage(&contact)
@@ -26,3 +28,14 @@ func main() {
 
 	node.LookupContact(&contact)
 }
+
+
+func Bootstrap (node kademlia.Kademlia, contact kademlia.Contact){
+
+	node.RoutingTable.AddContact(contact)
+	node.LookupContact(&node.RoutingTable.Me)
+
+}
+
+
+
