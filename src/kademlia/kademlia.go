@@ -2,8 +2,11 @@ package kademlia
 
 import (
 	"container/list"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"sync"
@@ -302,13 +305,13 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 	fmt.Printf("Thread %d done\n", i)
 }
 
-func (kademlia *Kademlia) LookupContact(target *Contact) {
+func (kademlia *Kademlia) LookupContact(key *KademliaID) ContactCandidates {
 	time.Sleep(1 * time.Second)
 
 	var wg sync.WaitGroup
 	var candidates ContactCandidates
 	done := false
-	closestKnown := kademlia.RoutingTable.FindClosestContacts(target.ID, int(K))
+	closestKnown := kademlia.RoutingTable.FindClosestContacts(key, int(K))
 
 	me := NewContact(kademlia.RoutingTable.Me.ID, kademlia.RoutingTable.Me.Address)
 	me.State = DONE
@@ -317,7 +320,7 @@ func (kademlia *Kademlia) LookupContact(target *Contact) {
 	candidates.Append(closestKnown)
 
 	for i := 0; i < candidates.Len(); i++ {
-		candidates.contacts[i].CalcDistance(target.ID)
+		candidates.contacts[i].CalcDistance(key)
 	}
 	candidates.Sort()
 
@@ -325,11 +328,11 @@ func (kademlia *Kademlia) LookupContact(target *Contact) {
 
 	wg.Add(ALPHA)
 	for i := 0; i < ALPHA; i++ {
-		go kademlia.lookupThread(i, &wg, &candidates, target.ID, &done)
+		go kademlia.lookupThread(i, &wg, &candidates, key, &done)
 	}
 	wg.Wait()
 
-	fmt.Printf("Lookup done! Results: %v\n", &candidates)
+	return candidates
 }
 
 func (kademlia *Kademlia) LookupData(hash string) {
@@ -337,5 +340,18 @@ func (kademlia *Kademlia) LookupData(hash string) {
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
-	// TODO
+	h := sha1.New()
+	io.WriteString(h, string(data))
+	key := NewKademliaID(hex.EncodeToString(h.Sum(nil)))
+
+	candidates := kademlia.LookupContact(key)
+
+	for i := 0; i < Min(candidates.Len(), int(K)); i++ {
+		kademlia.Network.SendStoreMessage(&candidates.contacts[i], data)
+	}
+}
+
+func (node *Kademlia) Bootstrap(contact Contact) {
+	node.RoutingTable.AddContact(contact)
+	node.LookupContact(node.RoutingTable.Me.ID)
 }

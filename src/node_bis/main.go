@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"kademlia"
 )
 
@@ -19,23 +20,17 @@ func main() {
 		fmt.Println("Ping back!!!")
 	})*/
 
-	Bootstrap(node, contact)
+	go node.Listen(MY_IP, MY_PORT)
+	node.Bootstrap(contact)
+
+	for _, c := range node.RoutingTable.FindClosestContacts(node.RoutingTable.Me.ID, 50) {
+		fmt.Println(c)
+	}
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
 	//node.Network.SendPingMessage(&contact)
-	go node.Listen(MY_IP, MY_PORT)
+	//go node.Listen(MY_IP, MY_PORT)
 
-	node.LookupContact(&contact)
+	//node.LookupContact(&contact)
 }
-
-
-func Bootstrap (node kademlia.Kademlia, contact kademlia.Contact){
-
-	node.RoutingTable.AddContact(contact)
-	node.LookupContact(&node.RoutingTable.Me)
-
-}
-
-
-
