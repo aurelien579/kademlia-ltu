@@ -13,7 +13,7 @@ func main() {
 	contact_id := kademlia.NewKademliaID("0000000000000000000000000000000000000002")
 	contact := kademlia.NewContact(contact_id, "127.0.0.1:3336")
 
-	node.RoutingTable.AddContact(contact)
+	//node.RoutingTable.AddContact(contact)
 
 	/*node.RegisterHandler(&contact, kademlia.MSG_PING, func(contact *kademlia.Contact, val interface{}) {
 		fmt.Println("Ping back!!!")
