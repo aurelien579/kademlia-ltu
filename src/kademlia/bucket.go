@@ -2,6 +2,8 @@ package kademlia
 
 import (
 	"container/list"
+	"fmt"
+	"time"
 )
 
 //ceci est un putain de commentaire pour voir si ça marche
@@ -10,6 +12,7 @@ import (
 // contains a List
 type bucket struct {
 	list *list.List
+	node *Kademlia
 }
 
 // newBucket returns a new instance of a bucket
@@ -35,7 +38,25 @@ func (bucket *bucket) AddContact(contact Contact) {
 		if bucket.list.Len() < bucketSize {
 			bucket.list.PushFront(contact)
 		} else {
-			// TODO: Ping plus ancient
+
+			olderKnown := bucket.list.Back().Value.(Contact)
+
+			bucket.node.RegisterHandler(&olderKnown, MSG_PING, func(contact *Contact, val interface{}) {
+		fmt.Println("Ping back!!!")
+		bucket.list.MoveToFront(bucket.list.Back())
+	})
+
+			bucket.node.Network.SendPingMessage(&olderKnown)
+
+			timer2 := time.NewTimer(1*time.Second)
+			go func() {
+				<-timer2.C
+				
+				node.DeleteHandler(&olderKnown, MSG_PING)
+				fmt.Println("Timeout")
+				bucket.list.Remove(bucket.list.Back())
+				bucket.list.PushFront(contact)
+			}()
 		}
 	} else {
 		bucket.list.MoveToFront(element)
