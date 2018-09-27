@@ -34,6 +34,8 @@ func (bucket *bucket) AddContact(contact Contact) {
 	if element == nil {
 		if bucket.list.Len() < bucketSize {
 			bucket.list.PushFront(contact)
+		} else {
+			// TODO: Ping plus ancient
 		}
 	} else {
 		bucket.list.MoveToFront(element)
