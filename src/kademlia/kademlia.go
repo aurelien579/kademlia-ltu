@@ -43,6 +43,8 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 
 	kademlia.Network.Kademlia = &kademlia
 
+	kademlia.Storage.kademlia = &kademlia
+
 	kademlia.ResponseHandlers = list.New()
 
 	for i := 0; i < IDLength*8; i++ {
