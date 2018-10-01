@@ -42,16 +42,16 @@ func (bucket *bucket) AddContact(contact Contact) {
 			olderKnown := bucket.list.Back().Value.(Contact)
 
 			bucket.node.RegisterHandler(&olderKnown, MSG_PING, func(contact *Contact, val interface{}) {
-		fmt.Println("Ping back!!!")
-		bucket.list.MoveToFront(bucket.list.Back())
-	})
+				fmt.Println("Ping back!!!")
+				bucket.list.MoveToFront(bucket.list.Back())
+			})
 
 			bucket.node.Network.SendPingMessage(&olderKnown)
 
-			timer2 := time.NewTimer(1*time.Second)
+			timer2 := time.NewTimer(1 * time.Second)
 			go func() {
 				<-timer2.C
-				
+
 				bucket.node.DeleteHandler(&olderKnown, MSG_PING)
 				fmt.Println("Timeout")
 				bucket.list.Remove(bucket.list.Back())
