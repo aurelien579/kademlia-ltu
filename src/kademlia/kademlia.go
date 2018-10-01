@@ -267,6 +267,8 @@ func (kademlia *Kademlia) HandleStore(header Header, conn *net.UDPConn) {
 	var args StoreArguments
 	Decode(conn, &args)
 
+	fmt.Println("Store args: ", args)
+
 	data := make([]byte, args.Length)
 	length, _ := conn.Read(data)
 
@@ -384,7 +386,7 @@ func (kademlia *Kademlia) Store(data []byte) {
 		if candidates.contacts[i].ID != kademlia.RoutingTable.Me.ID {
 			kademlia.Network.SendStoreMessage(&candidates.contacts[i], key, data)
 		} else {
-
+			kademlia.Storage.Store(key.String(), data)
 		}
 	}
 }
