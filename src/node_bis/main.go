@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"kademlia"
 )
@@ -28,9 +27,10 @@ func main() {
 		fmt.Println(c)
 	}
 
-	fmt.Println("\n\n\n\n")
+	fmt.Printf("\n\n\n\n")
 
-	bytes, _ := hex.DecodeString("BONJOURRRRR")
+	bytes := []byte("BONJOURRR")
+	fmt.Printf("Data: %v\n ", bytes)
 	node.Store(bytes)
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
