@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"kademlia"
+	"os"
 )
 
 const MY_ID = "0000000000000000000000000000000000000001"
@@ -29,12 +31,12 @@ func main() {
 
 	fmt.Printf("\n\n\n\n")
 
-	hash := "087245a9db4528d496941904ec716fdf3d8a6c3d"
-	/*bytes := []byte("BONJOURRR")
+	//hash := "087245a9db4528d496941904ec716fdf3d8a6c3d"
+	bytes := []byte("BONJOURRR")
 	fmt.Printf("Data: %v\n ", bytes)
-	node.Store(bytes)*/
+	node.Store(bytes)
 
-	fmt.Println(node.LookupData(hash))
+	//fmt.Println(node.LookupData(hash))
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")
@@ -42,4 +44,6 @@ func main() {
 	//go node.Listen(MY_IP, MY_PORT)
 
 	//node.LookupContact(&contact)
+
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }

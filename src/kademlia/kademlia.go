@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const ALPHA = 3
+const ALPHA = 1
 
 type Kademlia struct {
 	RoutingTable     *RoutingTable

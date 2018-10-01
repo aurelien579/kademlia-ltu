@@ -1,5 +1,5 @@
 FROM golang:1.8
 
 WORKDIR .
-RUN go build node
-CMD ["./node", "0000000000000000000000000000000000000002", "3336", "0", "0"]
+RUN go build node_gen
+CMD ["./node_gen"]
