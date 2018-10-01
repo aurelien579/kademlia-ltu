@@ -70,7 +70,6 @@ func (storage *Storage) Store(filename string, data []byte) {
 	var exist = false
 
 	for i := 0; i < len(storage.filenameTimer); i++ {
-		log.Printf("%s, %s\n", storage.filenameTimer[i].filename, filename)
 		if storage.filenameTimer[i].filename == filename {
 			log.Printf("Stopping timer\n")
 			storage.filenameTimer[i].timer.Stop()
@@ -88,5 +87,4 @@ func (storage *Storage) Store(filename string, data []byte) {
 		storage.filenameTimer = append(storage.filenameTimer, elem)
 
 	}
-
 }

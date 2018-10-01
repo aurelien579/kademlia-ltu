@@ -16,7 +16,7 @@ type Network struct {
 	Kademlia *Kademlia
 }
 
-const K uint8 = 2
+const K uint8 = 3
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
@@ -78,7 +78,7 @@ func Encode(c *net.UDPConn, value interface{}) {
 	err := encoder.Encode(value)
 
 	if err != nil {
-		log.Fatalf("Error encoding: %v\n", err)
+		log.Fatalf("[ERROR] Encoding: %v\n", err)
 	}
 
 	c.Write(buffer.Bytes())
@@ -90,8 +90,10 @@ func Decode(c *net.UDPConn, value interface{}) error {
 	inputBytes := make([]byte, 1024)
 	length, err := c.Read(inputBytes)
 	if err != nil {
-		log.Fatalf("Error reading: %v\n", err)
+		log.Fatalf("[ERROR] Reading: %v\n", err)
 	}
+
+	log.Printf("Read: (%d)\n", length)
 
 	buf := bytes.NewBuffer(inputBytes[:length])
 
@@ -159,7 +161,7 @@ func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data
 		return
 	}
 
-	fmt.Printf("Sending store to: %v\n", contact)
+	log.Printf("Sending store to: %v\n", contact)
 
 	msg := NewHeader(network, MSG_REQUEST, MSG_STORE)
 	msg.Arg = StoreArguments{

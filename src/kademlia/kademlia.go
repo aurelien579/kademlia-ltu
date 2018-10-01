@@ -24,7 +24,7 @@ type Kademlia struct {
 	Network          Network
 	Storage          Storage
 	ResponseHandlers *list.List
-	mutex            sync.Mutex
+	conn             *net.UDPConn
 }
 
 type ResponseHandler struct {
@@ -68,32 +68,24 @@ func (kademlia *Kademlia) RegisterHandler(contact *Contact, reqType uint8, f Res
 		F:       f,
 	}
 
-	kademlia.mutex.Lock()
 	kademlia.ResponseHandlers.PushBack(handler)
-	kademlia.mutex.Unlock()
 }
 
 func (kademlia *Kademlia) FindHandler(contact *Contact, reqType uint8) (ResponseHandler, error) {
-	kademlia.mutex.Lock()
-
 	for e := kademlia.ResponseHandlers.Front(); e != nil; e = e.Next() {
 		handler := e.Value.(ResponseHandler)
 
 		if handler.Contact.Address == contact.Address &&
 			*handler.Contact.ID == *contact.ID &&
 			handler.ReqType == reqType {
-			kademlia.mutex.Unlock()
 			return handler, nil
 		}
 	}
 
-	kademlia.mutex.Unlock()
 	return ResponseHandler{}, errors.New("Can't find handler")
 }
 
 func (kademlia *Kademlia) DeleteHandler(contact *Contact, reqType uint8) {
-	kademlia.mutex.Lock()
-
 	for e := kademlia.ResponseHandlers.Front(); e != nil; e = e.Next() {
 		handler := e.Value.(ResponseHandler)
 
@@ -104,8 +96,6 @@ func (kademlia *Kademlia) DeleteHandler(contact *Contact, reqType uint8) {
 			kademlia.ResponseHandlers.Remove(e)
 		}
 	}
-
-	kademlia.mutex.Unlock()
 }
 
 func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
@@ -116,9 +106,7 @@ func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
 		return
 	}
 
-	kademlia.mutex.Lock()
 	handler.F(&contact, val)
-	kademlia.mutex.Unlock()
 
 	kademlia.DeleteHandler(&contact, header.SubType)
 }
@@ -126,33 +114,28 @@ func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
 func (kademlia *Kademlia) Listen(ip string, port int) {
 	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 
+	conn, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	for {
-		udpConn, err := net.ListenUDP("udp", udpAddr)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
 
 		var header Header
-		Decode(udpConn, &header)
+		Decode(conn, &header)
 
-		kademlia.mutex.Lock()
 		kademlia.RoutingTable.AddContact(ContactFromHeader(&header))
-		kademlia.mutex.Unlock()
 
 		switch header.SubType {
 		case MSG_PING:
-			kademlia.HandlePing(header)
+			go kademlia.HandlePing(header)
 		case MSG_FIND_NODES:
-			kademlia.HandleFindNodes(header, udpConn)
+			go kademlia.HandleFindNodes(header)
 		case MSG_FIND_VALUE:
-			kademlia.HandleFindValue(header, udpConn)
+			go kademlia.HandleFindValue(header)
 		case MSG_STORE:
-			kademlia.HandleStore(header, udpConn)
+			go kademlia.HandleStore(header)
 		}
-
-		udpConn.Close()
-		// TODO: gérer le message dans un nouveau thread + AddContact
 	}
 }
 
@@ -176,7 +159,6 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 		Encode(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
 	} else {
-
 		kademlia.CallHandler(&header, nil)
 	}
 }
@@ -205,7 +187,7 @@ func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
 	Encode(conn, header)
 }
 
-func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
+func (kademlia *Kademlia) HandleFindNodes(header Header) {
 	switch header.Type {
 	case MSG_REQUEST:
 		findArguments := header.Arg.(FindArguments)
@@ -247,7 +229,7 @@ func (kademlia *Kademlia) SendFile(header Header, filename string) {
 	conn.Close()
 }
 
-func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
+func (kademlia *Kademlia) HandleFindValue(header Header) {
 	switch header.Type {
 	case MSG_REQUEST:
 		findArguments := header.Arg.(FindArguments)
@@ -259,6 +241,7 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 			var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(key), int(findArguments.Count))
 			kademlia.SendContacts(header, contacts)
 		}
+
 	case MSG_RESPONSE:
 		isContacts := true
 		if reflect.TypeOf(header.Arg).String() != "[]kademlia.ContactResult" {
@@ -278,8 +261,8 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 	}
 }
 
-func (kademlia *Kademlia) HandleStore(header Header, conn *net.UDPConn) {
-	fmt.Println("HANDLER STORE: ", header)
+func (kademlia *Kademlia) HandleStore(header Header) {
+	log.Println("HANDLER STORE: ", header)
 
 	if header.Type != MSG_REQUEST {
 		return
@@ -287,26 +270,30 @@ func (kademlia *Kademlia) HandleStore(header Header, conn *net.UDPConn) {
 
 	args := header.Arg.(StoreArguments)
 
-	fmt.Println("Store received: ", args.Length, args.Data)
+	log.Println("Store received: ", args.Length, args.Data)
 
 	kademlia.Storage.Store(args.Key.String(), args.Data)
 }
 
-func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCandidates, key *KademliaID, done *bool, lookupData bool, buffer *bytes.Buffer) {
+type ThreadContext struct {
+	wg         sync.WaitGroup
+	candidates ContactCandidates
+	target     *KademliaID
+	done       bool
+	lookupData bool
+	buffer     bytes.Buffer
+	mutex      sync.Mutex
+}
+
+func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 	log.Printf("\n\n\n\n============ Thread %d starting ============\n\n", i)
-	log.Println("Initial candidates: ", l)
+	log.Println("Initial candidates: ", context.candidates)
 
 	channel := make(chan int)
 
-	for !*done {
-		if l.Len() == 0 {
-			fmt.Println("No candidates")
-			time.Sleep(1 * time.Second)
-			continue
-		}
+	for !context.done {
+		target, err := context.candidates.GetClosestUnTook(int(K))
 
-		// TODO: check undone
-		target, err := l.GetClosestUnTook(int(K))
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(1 * time.Second)
@@ -316,9 +303,10 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 		log.Printf("Thread %d target: %v\n", i, target)
 
 		var subType = MSG_FIND_NODES
-		if lookupData {
+		if context.lookupData {
 			subType = MSG_FIND_VALUE
 		}
+
 		kademlia.RegisterHandler(target, subType, func(c *Contact, val interface{}) {
 			log.Printf("\n\n======= Handler called =======\n\n")
 
@@ -333,7 +321,7 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 				contacts := val.([]Contact)
 
 				for i := 0; i < len(contacts); i++ {
-					contacts[i].CalcDistance(key)
+					contacts[i].CalcDistance(context.target)
 				}
 
 				log.Printf("Thread %d results: [\n", i)
@@ -342,32 +330,36 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 				}
 				log.Println("]")
 
-				l.Append(contacts)
-				l.Sort()
+				context.candidates.Append(contacts)
+				context.candidates.Sort()
 			} else {
-				*done = true
-				buffer.Write(val.([]byte))
+				context.done = true
+
+				context.mutex.Lock()
+				context.buffer.Write(val.([]byte))
+				context.mutex.Unlock()
 			}
 
-			if !lookupData {
-				if l.Finish(int(K)) {
-					*done = true
+			if !context.lookupData {
+				if context.candidates.Finish(int(K)) {
+					log.Printf("Lookup data done: %v\n", context.candidates)
+					context.done = true
 				}
 			}
 
 			channel <- 1
 		})
 
-		if lookupData {
-			kademlia.Network.SendFindDataMessage(target, key)
+		if context.lookupData {
+			kademlia.Network.SendFindDataMessage(target, context.target)
 		} else {
-			kademlia.Network.SendFindContactMessage(target, key)
+			kademlia.Network.SendFindContactMessage(target, context.target)
 		}
 
 		<-channel
 	}
 
-	wg.Done()
+	context.wg.Done()
 
 	log.Printf("============ Thread %d done ============\n", i)
 
@@ -375,35 +367,35 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 }
 
 func (kademlia *Kademlia) Lookup(key *KademliaID, lookupData bool) interface{} {
-	time.Sleep(1 * time.Second)
+	context := ThreadContext{
+		done:       false,
+		lookupData: lookupData,
+		target:     key,
+	}
 
-	var wg sync.WaitGroup
-	var candidates ContactCandidates
-	var buffer bytes.Buffer
-	done := false
 	closestKnown := kademlia.RoutingTable.FindClosestContacts(key, int(K))
 
 	me := NewContact(kademlia.RoutingTable.Me.ID, kademlia.RoutingTable.Me.Address)
 	me.State = DONE
 
 	closestKnown = append(closestKnown, me)
-	candidates.Append(closestKnown)
+	context.candidates.Append(closestKnown)
 
-	for i := 0; i < candidates.Len(); i++ {
-		candidates.contacts[i].CalcDistance(key)
+	for i := 0; i < context.candidates.Len(); i++ {
+		context.candidates.contacts[i].CalcDistance(key)
 	}
-	candidates.Sort()
+	context.candidates.Sort()
 
-	wg.Add(ALPHA)
+	context.wg.Add(ALPHA)
 	for i := 0; i < ALPHA; i++ {
-		go kademlia.lookupThread(i, &wg, &candidates, key, &done, lookupData, &buffer)
+		go kademlia.lookupThread(i, &context)
 	}
-	wg.Wait()
+	context.wg.Wait()
 
-	if lookupData {
-		return buffer.Bytes()
+	if context.lookupData {
+		return context.buffer.Bytes()
 	} else {
-		return candidates
+		return context.candidates
 	}
 }
 

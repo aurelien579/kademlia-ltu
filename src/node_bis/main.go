@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"kademlia"
-	"log"
 	"os"
 )
 
@@ -25,9 +24,6 @@ func main() {
 	fmt.Printf("Data: %v\n ", bytes)
 	node.Store(bytes)
 
-	node.RegisterHandler(&contact, kademlia.MSG_FIND_NODES, func(contact *kademlia.Contact, val interface{}) {
-		log.Printf("Received: %v\n", val)
-	})
 	//node.Bootstrap(contact)
 
 	for _, c := range node.RoutingTable.FindClosestContacts(node.RoutingTable.Me.ID, 50) {
