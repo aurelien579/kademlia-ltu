@@ -3,6 +3,7 @@ package kademlia
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ type Storage struct {
 
 type Element2 struct {
 	filename string
-	timer    time.Timer
+	timer    *time.Timer
 }
 
 func NewStorage(root string) Storage {
@@ -29,7 +30,7 @@ func NewStorage(root string) Storage {
 }
 
 func (storage *Storage) deleteFile(filename string) {
-	fmt.Println("deleteFile")
+	log.Println("deleteFile")
 	err := os.Remove(storage.getPath(filename))
 	if err != nil {
 		fmt.Print("error deleting file", err)
@@ -49,7 +50,7 @@ func (storage *Storage) Read(filename string) []byte {
 	bytes, err := ioutil.ReadFile(storage.getPath(filename))
 
 	if err != nil {
-		fmt.Println("ERROR: ", err)
+		log.Println("ERROR: ", err)
 		return nil
 	}
 
@@ -62,16 +63,18 @@ func (storage *Storage) Store(filename string, data []byte) {
 	timer2 := time.NewTimer(10 * time.Second)
 	go func() {
 		<-timer2.C
-		fmt.Println("Republishing")
+		log.Printf("Republishing\n")
 		storage.kademlia.Store(data)
 	}()
 
 	var exist = false
 
 	for i := 0; i < len(storage.filenameTimer); i++ {
+		log.Printf("%s, %s\n", storage.filenameTimer[i].filename, filename)
 		if storage.filenameTimer[i].filename == filename {
+			log.Printf("Stopping timer\n")
 			storage.filenameTimer[i].timer.Stop()
-			storage.filenameTimer[i].timer = *time.AfterFunc(20*time.Second, func() {
+			storage.filenameTimer[i].timer = time.AfterFunc(20*time.Second, func() {
 				storage.deleteFile(filename)
 			})
 			exist = true
@@ -79,7 +82,7 @@ func (storage *Storage) Store(filename string, data []byte) {
 	}
 
 	if !exist {
-		elem := Element2{filename, *time.AfterFunc(20*time.Second, func() {
+		elem := Element2{filename, time.AfterFunc(20*time.Second, func() {
 			storage.deleteFile(filename)
 		})}
 		storage.filenameTimer = append(storage.filenameTimer, elem)

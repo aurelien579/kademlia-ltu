@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"net"
+	"reflect"
 )
 
 type Network struct {
@@ -30,6 +32,8 @@ type Header struct {
 	SrcPort uint16
 	Type    uint8 /* Request/Response */
 	SubType uint8
+
+	Arg interface{}
 }
 
 type FindArguments struct {
@@ -40,6 +44,7 @@ type FindArguments struct {
 type StoreArguments struct {
 	Key    KademliaID
 	Length int
+	Data   []byte
 }
 
 type ContactResult struct {
@@ -66,21 +71,41 @@ func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 }
 
 func Encode(c *net.UDPConn, value interface{}) {
+	log.Printf("Encoding: %s, %v (%s -> %s)\n", reflect.TypeOf(value), value, c.LocalAddr(), c.RemoteAddr())
+
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
-	encoder.Encode(value)
-	c.Write(buffer.Bytes())
+	err := encoder.Encode(value)
 
-	fmt.Printf("Encoding: %v\n", value)
+	if err != nil {
+		log.Fatalf("Error encoding: %v\n", err)
+	}
+
+	c.Write(buffer.Bytes())
 }
 
 func Decode(c *net.UDPConn, value interface{}) error {
+	log.Printf("Listening for: %s (%s -> %s)\n", reflect.TypeOf(value), c.RemoteAddr(), c.LocalAddr())
+
 	inputBytes := make([]byte, 1024)
-	length, _ := c.Read(inputBytes)
+	length, err := c.Read(inputBytes)
+	if err != nil {
+		log.Fatalf("Error reading: %v\n", err)
+	}
+
 	buf := bytes.NewBuffer(inputBytes[:length])
 
 	decoder := gob.NewDecoder(buf)
-	return decoder.Decode(value)
+
+	err = decoder.Decode(value)
+
+	log.Printf("Decoded: %s, %v\n", reflect.TypeOf(value), value)
+
+	if err != nil {
+		log.Fatalf("Error decoding: %v\n", err)
+	}
+
+	return err
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
@@ -107,11 +132,12 @@ func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findT
 		return
 	}
 
-	Encode(conn, NewHeader(network, MSG_REQUEST, findType))
-	Encode(conn, FindArguments{
+	msg := NewHeader(network, MSG_REQUEST, findType)
+	msg.Arg = FindArguments{
 		Count: K,
 		Key:   *key,
-	})
+	}
+	Encode(conn, msg)
 
 	conn.Close()
 }
@@ -135,13 +161,13 @@ func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data
 
 	fmt.Printf("Sending store to: %v\n", contact)
 
-	Encode(conn, NewHeader(network, MSG_REQUEST, MSG_STORE))
-	Encode(conn, StoreArguments{
+	msg := NewHeader(network, MSG_REQUEST, MSG_STORE)
+	msg.Arg = StoreArguments{
 		Key:    *key,
 		Length: len(data),
-	})
-
-	conn.Write(data)
+		Data:   data,
+	}
+	Encode(conn, msg)
 
 	conn.Close()
 }
