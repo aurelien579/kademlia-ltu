@@ -29,9 +29,12 @@ func main() {
 
 	fmt.Printf("\n\n\n\n")
 
-	bytes := []byte("BONJOURRR")
+	hash := "087245a9db4528d496941904ec716fdf3d8a6c3d"
+	/*bytes := []byte("BONJOURRR")
 	fmt.Printf("Data: %v\n ", bytes)
-	node.Store(bytes)
+	node.Store(bytes)*/
+
+	fmt.Println(node.LookupData(hash))
 
 	//node.Network.SendFindContactMessage(&contact, kademlia.NewKademliaID("000000000000000000000000000000000000FFFF"))
 	//node.Network.SendFindDataMessage("000000000000000000000000000000000000FFFF")

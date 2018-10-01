@@ -20,7 +20,7 @@ const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
 
 const MSG_PING uint8 = 1
-const MSG_FIND_NODES uint8 = 45
+const MSG_FIND_NODES uint8 = 2
 const MSG_FIND_VALUE uint8 = 3
 const MSG_STORE uint8 = 4
 
@@ -70,15 +70,17 @@ func Encode(c *net.UDPConn, value interface{}) {
 	encoder := gob.NewEncoder(&buffer)
 	encoder.Encode(value)
 	c.Write(buffer.Bytes())
+
+	fmt.Printf("Encoding: %v\n", value)
 }
 
-func Decode(c *net.UDPConn, value interface{}) {
+func Decode(c *net.UDPConn, value interface{}) error {
 	inputBytes := make([]byte, 1024)
 	length, _ := c.Read(inputBytes)
 	buf := bytes.NewBuffer(inputBytes[:length])
 
 	decoder := gob.NewDecoder(buf)
-	decoder.Decode(value)
+	return decoder.Decode(value)
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
@@ -118,13 +120,8 @@ func (network *Network) SendFindContactMessage(contact *Contact, key *KademliaID
 	network.sendFindMessage(contact, key, MSG_FIND_NODES)
 }
 
-func (network *Network) SendFindDataMessage(hash string) {
-	key := NewKademliaID(hash)
-
-	closest := network.Kademlia.RoutingTable.FindClosestContacts(key, 1)
-
-	fmt.Println("closest: ", closest)
-	network.sendFindMessage(&closest[0], key, MSG_FIND_VALUE)
+func (network *Network) SendFindDataMessage(contact *Contact, key *KademliaID) {
+	network.sendFindMessage(contact, key, MSG_FIND_VALUE)
 }
 
 func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data []byte) {

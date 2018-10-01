@@ -1,19 +1,22 @@
 package kademlia
 
 import (
+	"bytes"
 	"container/list"
 	"crypto/sha1"
+	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
 )
 
-const ALPHA = 1
+const ALPHA = 3
 
 type Kademlia struct {
 	RoutingTable     *RoutingTable
@@ -56,6 +59,8 @@ func (kademlia *Kademlia) RegisterHandler(contact *Contact, reqType uint8, f Res
 		F:       f,
 	}
 
+	fmt.Println("Register handler: ", contact, reqType)
+
 	kademlia.ResponseHandlers.PushBack(handler)
 }
 
@@ -88,6 +93,7 @@ func (kademlia *Kademlia) DeleteHandler(contact *Contact, reqType uint8) {
 }
 
 func (kademlia *Kademlia) CallHandler(header *Header, val interface{}) {
+	fmt.Println("CallHandler: ", header)
 	contact := ContactFromHeader(header)
 	handler, err := kademlia.FindHandler(&contact, header.SubType)
 	if err != nil {
@@ -167,7 +173,7 @@ func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
 		return
 	}
 
-	header = NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_NODES)
+	header = NewHeader(&kademlia.Network, MSG_RESPONSE, header.SubType)
 	fmt.Println("Sending header: ", header)
 	Encode(conn, header)
 
@@ -209,8 +215,6 @@ func (kademlia *Kademlia) HandleFindNodes(header Header, udpConn *net.UDPConn) {
 		fmt.Println("Calling handler")
 		kademlia.CallHandler(&header, contacts)
 
-		//TODO: traiter les contacts
-
 		fmt.Printf("Contacts received: %v\n", contacts)
 	}
 }
@@ -226,9 +230,14 @@ func (kademlia *Kademlia) SendFile(header Header, filename string) {
 	msg := NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_VALUE)
 	Encode(conn, msg)
 
-	time.Sleep(1 * time.Second)
+	data := kademlia.Storage.Read(filename)
 
-	conn.Write(kademlia.Storage.Read(filename))
+	Encode(conn, StoreArguments{
+		Key:    *NewKademliaID(filename),
+		Length: len(data),
+	})
+
+	conn.Write(data)
 
 	conn.Close()
 }
@@ -243,17 +252,40 @@ func (kademlia *Kademlia) HandleFindValue(header Header, udpConn *net.UDPConn) {
 		fmt.Printf("Argument received: %v\n", findArguments)
 
 		if kademlia.Storage.Exists(key.String()) {
+			fmt.Println("Sending file")
 			kademlia.SendFile(header, key.String())
 		} else {
+			fmt.Println("Sending contacts")
 			var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(key), int(findArguments.Count))
 			kademlia.SendContacts(header, contacts)
 		}
 	case MSG_RESPONSE:
-		content := make([]byte, 1024)
+		var contactResults []ContactResult
 
-		length, _ := udpConn.Read(content)
-		fmt.Println("Received: ", string(content[:length]))
-		//JE RECOIS UN FICHIER
+		inputBytes := make([]byte, 1024)
+		length, _ := udpConn.Read(inputBytes)
+		buf := bytes.NewBuffer(inputBytes[:length])
+
+		decoder := gob.NewDecoder(buf)
+		err := decoder.Decode(&contactResults)
+		if err != nil { /* Process file */
+			var args StoreArguments
+			buf := bytes.NewBuffer(inputBytes[:length])
+			decoder := gob.NewDecoder(buf)
+			err = decoder.Decode(&args)
+
+			inputBytes = make([]byte, args.Length)
+			length, _ = udpConn.Read(inputBytes)
+
+			kademlia.CallHandler(&header, inputBytes)
+		} else { /* Process contacts */
+			var contacts []Contact
+			for _, r := range contactResults {
+				contacts = append(contacts, NewContact(NewKademliaID(r.ID), r.Address))
+			}
+
+			kademlia.CallHandler(&header, contacts)
+		}
 	}
 }
 
@@ -277,7 +309,7 @@ func (kademlia *Kademlia) HandleStore(header Header, conn *net.UDPConn) {
 	kademlia.Storage.Store(args.Key.String(), data)
 }
 
-func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCandidates, key *KademliaID, done *bool) {
+func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCandidates, key *KademliaID, done *bool, lookupData bool, buffer *bytes.Buffer) {
 	fmt.Printf("Thread %d starting\n", i)
 
 	channel := make(chan int)
@@ -301,39 +333,57 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 
 		fmt.Printf("Thread %d target: %v\n", i, target)
 
-		kademlia.RegisterHandler(target, MSG_FIND_NODES, func(c *Contact, val interface{}) {
-			results := val.([]Contact)
-
-			for i := 0; i < len(results); i++ {
-				results[i].CalcDistance(key)
+		var subType = MSG_FIND_NODES
+		if lookupData {
+			subType = MSG_FIND_VALUE
+		}
+		kademlia.RegisterHandler(target, subType, func(c *Contact, val interface{}) {
+			isContacts := true
+			if reflect.TypeOf(val).String() != "[]kademlia.Contact" {
+				isContacts = false
 			}
+
+			fmt.Println("Handler isContacts: ", isContacts, reflect.TypeOf(val).String())
 
 			target.State = DONE
 
-			fmt.Printf("Thread %d results: [\n", i)
+			if isContacts {
+				contacts := val.([]Contact)
 
-			for _, r := range results {
-				fmt.Println("\t", r)
-			}
-			fmt.Println("]")
+				for i := 0; i < len(contacts); i++ {
+					contacts[i].CalcDistance(key)
+				}
 
-			l.Append(results)
-			l.Sort()
+				fmt.Printf("Thread %d results: [\n", i)
+				for _, r := range contacts {
+					fmt.Println("\t", r)
+				}
+				fmt.Println("]")
 
-			if l.Finish(int(K)) {
+				l.Append(contacts)
+				l.Sort()
+			} else {
+				fmt.Println("File found!")
 				*done = true
+				buffer.Write(val.([]byte))
 			}
 
-			fmt.Println("a")
+			if !lookupData {
+				if l.Finish(int(K)) {
+					*done = true
+				}
+			}
+
 			channel <- 1
-			fmt.Println("b")
 		})
 
-		kademlia.Network.SendFindContactMessage(target, key)
+		if lookupData {
+			kademlia.Network.SendFindDataMessage(target, key)
+		} else {
+			kademlia.Network.SendFindContactMessage(target, key)
+		}
 
-		fmt.Println("Reading channel")
 		<-channel
-		fmt.Println("Channel read")
 	}
 
 	wg.Done()
@@ -343,11 +393,12 @@ func (kademlia *Kademlia) lookupThread(i int, wg *sync.WaitGroup, l *ContactCand
 	close(channel)
 }
 
-func (kademlia *Kademlia) LookupContact(key *KademliaID) ContactCandidates {
+func (kademlia *Kademlia) Lookup(key *KademliaID, lookupData bool) interface{} {
 	time.Sleep(1 * time.Second)
 
 	var wg sync.WaitGroup
 	var candidates ContactCandidates
+	var buffer bytes.Buffer
 	done := false
 	closestKnown := kademlia.RoutingTable.FindClosestContacts(key, int(K))
 
@@ -364,15 +415,24 @@ func (kademlia *Kademlia) LookupContact(key *KademliaID) ContactCandidates {
 
 	wg.Add(ALPHA)
 	for i := 0; i < ALPHA; i++ {
-		go kademlia.lookupThread(i, &wg, &candidates, key, &done)
+		go kademlia.lookupThread(i, &wg, &candidates, key, &done, lookupData, &buffer)
 	}
 	wg.Wait()
 
-	return candidates
+	if lookupData {
+		return buffer.Bytes()
+	} else {
+		return candidates
+	}
 }
 
-func (kademlia *Kademlia) LookupData(hash string) {
-	// TODO
+func (kademlia *Kademlia) LookupContact(key *KademliaID) ContactCandidates {
+	return kademlia.Lookup(key, false).(ContactCandidates)
+}
+
+func (kademlia *Kademlia) LookupData(hash string) []byte {
+	key := NewKademliaID(hash)
+	return kademlia.Lookup(key, true).([]byte)
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
