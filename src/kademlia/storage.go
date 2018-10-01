@@ -5,10 +5,18 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 )
 
 type Storage struct {
 	Root string
+	kademlia *Kademlia
+	filenameTimer []Element2
+}
+
+type Element2 struct {
+	filename string
+	timer time.Timer
 }
 
 func NewStorage(root string) Storage {
@@ -17,6 +25,13 @@ func NewStorage(root string) Storage {
 
 	return Storage{
 		Root: root,
+	}
+}
+
+func (storage *Storage) deleteFile (filename string){
+	err := os.Remove(storage.getPath(filename))
+	if err != nil {
+		fmt.Print("error deleting file", err)
 	}
 }
 
@@ -42,4 +57,38 @@ func (storage *Storage) Read(filename string) []byte {
 
 func (storage *Storage) Store(filename string, data []byte) {
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
+
+	timer2 := time.NewTimer(60 * time.Second)
+	go func() {
+		<-timer2.C
+		storage.kademlia.Store(data)
+
+	}()
+
+	var exist = false
+
+	for i:=0; i< len(storage.filenameTimer);i++{
+		if storage.filenameTimer[i].filename == filename {
+			storage.filenameTimer[i].timer.Stop()
+			storage.filenameTimer[i].timer = *time.AfterFunc(120 * time.Second, func() {
+				storage.deleteFile(filename)
+			})
+			exist = true
+		}
+	}
+
+	if !exist {
+		elem := Element2{filename, *time.AfterFunc(120 * time.Second, func() {
+			storage.deleteFile(filename)
+		}) }
+		storage.filenameTimer = append(storage.filenameTimer, elem)
+
+
+	}
+
+
+
+
+
+
 }
