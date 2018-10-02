@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"reflect"
 )
 
 type Network struct {
@@ -16,7 +15,7 @@ type Network struct {
 	Kademlia *Kademlia
 }
 
-const K uint8 = 3
+const K uint8 = 2
 
 const MSG_REQUEST uint8 = 1
 const MSG_RESPONSE uint8 = 2
@@ -71,7 +70,7 @@ func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 }
 
 func Encode(c *net.UDPConn, value interface{}) {
-	log.Printf("Encoding: %s, %v (%s -> %s)\n", reflect.TypeOf(value), value, c.LocalAddr(), c.RemoteAddr())
+	log.Printf("Encoding: %v (%s -> %s)\n", value, c.LocalAddr(), c.RemoteAddr())
 
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
@@ -85,15 +84,11 @@ func Encode(c *net.UDPConn, value interface{}) {
 }
 
 func Decode(c *net.UDPConn, value interface{}) error {
-	log.Printf("Listening for: %s (%s -> %s)\n", reflect.TypeOf(value), c.RemoteAddr(), c.LocalAddr())
-
 	inputBytes := make([]byte, 1024)
 	length, err := c.Read(inputBytes)
 	if err != nil {
 		log.Fatalf("[ERROR] Reading: %v\n", err)
 	}
-
-	log.Printf("Read: (%d)\n", length)
 
 	buf := bytes.NewBuffer(inputBytes[:length])
 
@@ -101,7 +96,7 @@ func Decode(c *net.UDPConn, value interface{}) error {
 
 	err = decoder.Decode(value)
 
-	log.Printf("Decoded: %s, %v\n", reflect.TypeOf(value), value)
+	log.Printf("Decoded: %v\n", value)
 
 	if err != nil {
 		log.Fatalf("Error decoding: %v\n", err)
@@ -160,8 +155,6 @@ func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data
 		fmt.Println(err)
 		return
 	}
-
-	log.Printf("Sending store to: %v\n", contact)
 
 	msg := NewHeader(network, MSG_REQUEST, MSG_STORE)
 	msg.Arg = StoreArguments{

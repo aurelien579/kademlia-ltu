@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const REPUBLISH_TIME = 30
+
 type Storage struct {
 	Root          string
 	kademlia      *Kademlia
@@ -60,7 +62,7 @@ func (storage *Storage) Read(filename string) []byte {
 func (storage *Storage) Store(filename string, data []byte) {
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
 
-	timer2 := time.NewTimer(10 * time.Second)
+	timer2 := time.NewTimer(REPUBLISH_TIME * time.Second)
 	go func() {
 		<-timer2.C
 		log.Printf("Republishing\n")
@@ -71,9 +73,8 @@ func (storage *Storage) Store(filename string, data []byte) {
 
 	for i := 0; i < len(storage.filenameTimer); i++ {
 		if storage.filenameTimer[i].filename == filename {
-			log.Printf("Stopping timer\n")
-			storage.filenameTimer[i].timer.Stop()
-			storage.filenameTimer[i].timer = time.AfterFunc(20*time.Second, func() {
+			//			storage.filenameTimer[i].timer.Stop()
+			storage.filenameTimer[i].timer = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
 				storage.deleteFile(filename)
 			})
 			exist = true
@@ -81,7 +82,7 @@ func (storage *Storage) Store(filename string, data []byte) {
 	}
 
 	if !exist {
-		elem := Element2{filename, time.AfterFunc(20*time.Second, func() {
+		elem := Element2{filename, time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
 			storage.deleteFile(filename)
 		})}
 		storage.filenameTimer = append(storage.filenameTimer, elem)

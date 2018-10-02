@@ -120,7 +120,6 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 	}
 
 	for {
-
 		var header Header
 		Decode(conn, &header)
 
@@ -270,7 +269,7 @@ func (kademlia *Kademlia) HandleStore(header Header) {
 
 	args := header.Arg.(StoreArguments)
 
-	log.Println("Store received: ", args.Length, args.Data)
+	//log.Println("Store received: ", args.Length, args.Data)
 
 	kademlia.Storage.Store(args.Key.String(), args.Data)
 }
@@ -286,8 +285,8 @@ type ThreadContext struct {
 }
 
 func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
-	log.Printf("\n\n\n\n============ Thread %d starting ============\n\n", i)
-	log.Println("Initial candidates: ", context.candidates)
+	//log.Printf("\n\n\n\n============ Thread %d starting ============\n\n", i)
+	//log.Println("Initial candidates: ", context.candidates)
 
 	channel := make(chan int)
 
@@ -300,7 +299,7 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 			continue
 		}
 
-		log.Printf("Thread %d target: %v\n", i, target)
+		//log.Printf("Thread %d target: %v\n", i, target)
 
 		var subType = MSG_FIND_NODES
 		if context.lookupData {
@@ -308,7 +307,7 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 		}
 
 		kademlia.RegisterHandler(target, subType, func(c *Contact, val interface{}) {
-			log.Printf("\n\n======= Handler called =======\n\n")
+			//log.Printf("\n\n======= Handler called =======\n\n")
 
 			isContacts := true
 			if reflect.TypeOf(val).String() != "[]kademlia.Contact" {
@@ -324,11 +323,11 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 					contacts[i].CalcDistance(context.target)
 				}
 
-				log.Printf("Thread %d results: [\n", i)
-				for _, r := range contacts {
-					log.Println("\t", r)
-				}
-				log.Println("]")
+				//log.Printf("Thread %d results: [\n", i)
+				//for _, r := range contacts {
+				//	log.Println("\t", r)
+				//}
+				//log.Println("]")
 
 				context.candidates.Append(contacts)
 				context.candidates.Sort()
@@ -342,7 +341,6 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 
 			if !context.lookupData {
 				if context.candidates.Finish(int(K)) {
-					log.Printf("Lookup data done: %v\n", context.candidates)
 					context.done = true
 				}
 			}
@@ -361,7 +359,7 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 
 	context.wg.Done()
 
-	log.Printf("============ Thread %d done ============\n", i)
+	//log.Printf("============ Thread %d done ============\n", i)
 
 	close(channel)
 }

@@ -2,7 +2,6 @@ package kademlia
 
 import (
 	"container/list"
-	"fmt"
 	"time"
 )
 
@@ -42,7 +41,6 @@ func (bucket *bucket) AddContact(contact Contact) {
 			olderKnown := bucket.list.Back().Value.(Contact)
 
 			bucket.node.RegisterHandler(&olderKnown, MSG_PING, func(contact *Contact, val interface{}) {
-				fmt.Println("Ping back!!!")
 				bucket.list.MoveToFront(bucket.list.Back())
 			})
 
@@ -53,7 +51,6 @@ func (bucket *bucket) AddContact(contact Contact) {
 				<-timer2.C
 
 				bucket.node.DeleteHandler(&olderKnown, MSG_PING)
-				fmt.Println("Timeout")
 				bucket.list.Remove(bucket.list.Back())
 				bucket.list.PushFront(contact)
 			}()
