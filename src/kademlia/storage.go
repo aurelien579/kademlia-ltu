@@ -74,6 +74,9 @@ func (storage *Storage) Store(filename string, data []byte) {
 
 	if exist {
 
+
+		log.Println("the file exist: ",filename)
+
 		for i := 0; i < len(storage.filenameTimer); i++ {
 			if storage.filenameTimer[i].filename == filename {
 				storage.filenameTimer[i].timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
@@ -82,6 +85,10 @@ func (storage *Storage) Store(filename string, data []byte) {
 		}
 	} else {
 
+
+		log.Println("the file doesn't exist: ",filename)
+
+		
 		timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
 			storage.kademlia.Store(data)
 		})
@@ -103,6 +110,8 @@ func (storage *Storage) Exist(filename string) bool {
 
 	for i := 0; i < len(storage.filenameTimer); i++ {
 		if storage.filenameTimer[i].filename == filename {
+
+			log.Println("Store: ", filename)
 			return true
 		}
 	}
