@@ -85,6 +85,8 @@ func Encode(c *net.UDPConn, value interface{}) {
 
 func Decode(c *net.UDPConn, value interface{}) error {
 	inputBytes := make([]byte, 1024)
+
+	log.Printf("Listening...\n")
 	length, err := c.Read(inputBytes)
 	if err != nil {
 		log.Fatalf("[ERROR] Reading: %v\n", err)

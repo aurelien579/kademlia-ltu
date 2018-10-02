@@ -40,9 +40,9 @@ func (bucket *bucket) AddContact(contact Contact) {
 
 			olderKnown := bucket.list.Back().Value.(Contact)
 
-			bucket.node.RegisterHandler(&olderKnown, MSG_PING, func(contact *Contact, val interface{}) {
-				bucket.list.MoveToFront(bucket.list.Back())
-			})
+			channel := make(chan Header)
+
+			bucket.node.RegisterChannel(&olderKnown, MSG_PING, channel)
 
 			bucket.node.Network.SendPingMessage(&olderKnown)
 
@@ -50,10 +50,13 @@ func (bucket *bucket) AddContact(contact Contact) {
 			go func() {
 				<-timer2.C
 
-				bucket.node.DeleteHandler(&olderKnown, MSG_PING)
+				bucket.node.DeleteChannel(&olderKnown, MSG_PING)
 				bucket.list.Remove(bucket.list.Back())
 				bucket.list.PushFront(contact)
 			}()
+
+			<-channel
+			bucket.list.MoveToFront(bucket.list.Back())
 		}
 	} else {
 		bucket.list.MoveToFront(element)
