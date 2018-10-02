@@ -63,7 +63,6 @@ func (storage *Storage) Read(filename string) []byte {
 }
 
 func (storage *Storage) Store(filename string, data []byte) {
-
 	log.Println("Store: ", filename)
 
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
@@ -73,9 +72,7 @@ func (storage *Storage) Store(filename string, data []byte) {
 	var exist = storage.Exist(filename)
 
 	if exist {
-
-
-		log.Println("the file exist: ",filename)
+		log.Println("the file exist: ", filename)
 
 		for i := 0; i < len(storage.filenameTimer); i++ {
 			if storage.filenameTimer[i].filename == filename {
@@ -84,11 +81,8 @@ func (storage *Storage) Store(filename string, data []byte) {
 			}
 		}
 	} else {
+		log.Println("the file doesn't exist: ", filename)
 
-
-		log.Println("the file doesn't exist: ",filename)
-
-		
 		timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
 			storage.kademlia.Store(data)
 		})
@@ -103,20 +97,16 @@ func (storage *Storage) Store(filename string, data []byte) {
 	}
 
 	storage.mutex.Unlock()
-
 }
 
 func (storage *Storage) Exist(filename string) bool {
-
 	for i := 0; i < len(storage.filenameTimer); i++ {
 		if storage.filenameTimer[i].filename == filename {
-
-			log.Println("Store: ", filename)
 			return true
 		}
 	}
-	return false
 
+	return false
 }
 
 func (storage *Storage) DeleteElement(filename string) {

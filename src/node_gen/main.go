@@ -64,6 +64,8 @@ func main() {
 
 	go node.Listen(ip, port)
 
+	time.Sleep(300 * time.Millisecond)
+
 	if ip != "172.17.0.2" {
 		node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000002"), "172.17.0.2:4000"))
 	}
