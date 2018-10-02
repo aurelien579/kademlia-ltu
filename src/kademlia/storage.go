@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type Storage struct {
 	Root          string
 	kademlia      *Kademlia
 	filenameTimer []Element2
+	mutex         sync.Mutex
 }
 
 type Element2 struct {
@@ -62,10 +64,13 @@ func (storage *Storage) Read(filename string) []byte {
 
 func (storage *Storage) Store(filename string, data []byte) {
 
+
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
 
+	storage.mutex.Lock()
+
 	var exist = storage.Exist(filename)
-	
+
 	if exist {
 
 		for i := 0; i < len(storage.filenameTimer); i++ {
@@ -88,6 +93,9 @@ func (storage *Storage) Store(filename string, data []byte) {
 		elem := Element2{filename, timerRepublish, timerDelete}
 		storage.filenameTimer = append(storage.filenameTimer, elem)
 	}
+
+	storage.mutex.Unlock()
+
 }
 
 func (storage *Storage) Exist(filename string) bool {
