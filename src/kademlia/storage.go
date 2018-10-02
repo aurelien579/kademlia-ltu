@@ -64,6 +64,7 @@ func (storage *Storage) Read(filename string) []byte {
 
 func (storage *Storage) Store(filename string, data []byte) {
 
+	log.Println("Store: ", filename)
 
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
 
