@@ -18,8 +18,9 @@ type Storage struct {
 }
 
 type Element2 struct {
-	filename string
-	timer    *time.Timer
+	filename       string
+	timerRepublish *time.Timer
+	timerDelete    *time.Timer
 }
 
 func NewStorage(root string) Storage {
@@ -60,31 +61,53 @@ func (storage *Storage) Read(filename string) []byte {
 }
 
 func (storage *Storage) Store(filename string, data []byte) {
+
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
 
-	timer2 := time.NewTimer(REPUBLISH_TIME * time.Second)
-	go func() {
-		<-timer2.C
-		log.Printf("Republishing\n")
-		storage.kademlia.Store(data)
-	}()
+	var exist = storage.Exist(filename)
+	
+	if exist {
 
-	var exist = false
+		for i := 0; i < len(storage.filenameTimer); i++ {
+			if storage.filenameTimer[i].filename == filename {
+				storage.filenameTimer[i].timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
+				storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+			}
+		}
+	} else {
+
+		timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
+			storage.kademlia.Store(data)
+		})
+
+		timerDelete := time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+			storage.deleteFile(filename)
+			storage.DeleteElement(filename)
+		})
+
+		elem := Element2{filename, timerRepublish, timerDelete}
+		storage.filenameTimer = append(storage.filenameTimer, elem)
+	}
+}
+
+func (storage *Storage) Exist(filename string) bool {
 
 	for i := 0; i < len(storage.filenameTimer); i++ {
 		if storage.filenameTimer[i].filename == filename {
-			//			storage.filenameTimer[i].timer.Stop()
-			storage.filenameTimer[i].timer = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
-				storage.deleteFile(filename)
-			})
-			exist = true
+			return true
+		}
+	}
+	return false
+
+}
+
+func (storage *Storage) DeleteElement(filename string) {
+	for i := 0; i < len(storage.filenameTimer); i++ {
+		if storage.filenameTimer[i].filename == filename {
+			storage.filenameTimer[i].timerRepublish.Stop()
+			storage.filenameTimer[i].timerDelete.Stop()
+			storage.filenameTimer = append(storage.filenameTimer[:i], storage.filenameTimer[i+1:]...)
 		}
 	}
 
-	if !exist {
-		elem := Element2{filename, time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
-			storage.deleteFile(filename)
-		})}
-		storage.filenameTimer = append(storage.filenameTimer, elem)
-	}
 }
