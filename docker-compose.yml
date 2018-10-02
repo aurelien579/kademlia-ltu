@@ -1,7 +1,7 @@
 version: "3"
 services:
   kademlia_nodes:
-    build: .
+    image: aurelien579/kademlia
     stdin_open: true
     tty: true
     deploy:

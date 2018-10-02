@@ -83,20 +83,24 @@ func Encode(c *net.UDPConn, value interface{}) {
 	c.Write(buffer.Bytes())
 }
 
-func Decode(c *net.UDPConn, value interface{}) error {
+func Decode(c *net.UDPConn, value *Header) error {
 	inputBytes := make([]byte, 1024)
 
 	log.Printf("Listening...\n")
-	length, err := c.Read(inputBytes)
+	length, addr, err := c.ReadFromUDP(inputBytes)
 	if err != nil {
 		log.Fatalf("[ERROR] Reading: %v\n", err)
 	}
+
+	log.Printf("Received from : %v\n", addr)
 
 	buf := bytes.NewBuffer(inputBytes[:length])
 
 	decoder := gob.NewDecoder(buf)
 
 	err = decoder.Decode(value)
+
+	value.SrcIP = IPToLong(addr.IP.String())
 
 	log.Printf("Decoded: %v\n", value)
 

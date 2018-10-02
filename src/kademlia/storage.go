@@ -86,6 +86,5 @@ func (storage *Storage) Store(filename string, data []byte) {
 			storage.deleteFile(filename)
 		})}
 		storage.filenameTimer = append(storage.filenameTimer, elem)
-
 	}
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"kademlia"
+	"log"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,25 +31,44 @@ func getFreePort(start int) int {
 	}
 }
 
+func getMyIp() string {
+	ifaces, _ := net.Interfaces()
+	for _, i := range ifaces {
+		if strings.Contains(i.Name, "eth0") {
+			addrs, _ := i.Addrs()
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				return ip.String()
+			}
+		}
+	}
+
+	return ""
+}
+
 func main() {
 	var node kademlia.Kademlia
-	port := getFreePort(4000)
+	port := 4000
+	ip := getMyIp()
 
-	fmt.Println(port)
+	log.Println(ip)
 
-	if port == 4000 {
-		node = kademlia.NewKademlia("0000000000000000000000000000000000000001", "127.0.0.1", port)
-	} else {
-		node = kademlia.NewKademlia("000000000000000000000000000000000000"+strconv.Itoa(port), "127.0.0.1", port)
+	node = kademlia.NewKademlia("000000000000000000000000000000000000000"+string(ip[len(ip)-1]), ip, port)
+
+	go node.Listen(ip, port)
+
+	if ip != "172.17.0.2" {
+		node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000002"), "172.17.0.2:4000"))
 	}
 
-	go node.Listen("127.0.0.1", port)
-
-	if port != 4000 {
-		node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), "127.0.0.1:4000"))
-	}
-
-	if port == 4001 {
+	if ip == "172.17.0.5" {
 		time.Sleep(10 * time.Second)
 		node.Store([]byte("Toto"))
 	}

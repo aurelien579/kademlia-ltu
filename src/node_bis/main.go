@@ -7,14 +7,14 @@ import (
 	"os"
 )
 
-const MY_ID = "0000000000000000000000000000000000000001"
+const MY_ID = "0000000000000000000000000000000000000002"
 const MY_IP = "127.0.0.1"
-const MY_PORT = 3334
+const MY_PORT = 4100
 
 func main() {
 	node := kademlia.NewKademlia(MY_ID, MY_IP, MY_PORT)
-	contact_id := kademlia.NewKademliaID("0000000000000000000000000000000000000002")
-	contact := kademlia.NewContact(contact_id, "127.0.0.1:3336")
+	contact_id := kademlia.NewKademliaID("0000000000000000000000000000000000000001")
+	contact := kademlia.NewContact(contact_id, "127.0.0.1:4000")
 
 	node.RoutingTable.AddContact(contact)
 

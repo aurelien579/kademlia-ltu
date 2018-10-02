@@ -50,6 +50,8 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 		Storage:      NewStorage(id),
 	}
 
+	log.Println("MyID: ", id)
+
 	kademlia.Network.Kademlia = &kademlia
 
 	kademlia.Storage.kademlia = &kademlia
@@ -82,22 +84,20 @@ func (kademlia *Kademlia) FindChannel(contact *Contact, reqType uint8) (Response
 	for e := kademlia.ResponseChannels.Front(); e != nil; e = e.Next() {
 		channel := e.Value.(ResponseChannel)
 
-		if channel.Contact.Address == contact.Address &&
-			*channel.Contact.ID == *contact.ID &&
+		if *channel.Contact.ID == *contact.ID &&
 			channel.ReqType == reqType {
 			return channel, nil
 		}
 	}
 
-	return ResponseChannel{}, errors.New("Can't find handler")
+	return ResponseChannel{}, errors.New("Can't find channel")
 }
 
 func (kademlia *Kademlia) DeleteChannel(contact *Contact, reqType uint8) {
 	for e := kademlia.ResponseChannels.Front(); e != nil; e = e.Next() {
 		channel := e.Value.(ResponseChannel)
 
-		if channel.Contact.Address == contact.Address &&
-			*channel.Contact.ID == *contact.ID &&
+		if *channel.Contact.ID == *contact.ID &&
 			channel.ReqType == reqType {
 
 			kademlia.ResponseChannels.Remove(e)
@@ -125,6 +125,8 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	log.Println(conn.LocalAddr())
 
 	for {
 		var header Header
