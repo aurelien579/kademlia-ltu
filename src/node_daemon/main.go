@@ -86,7 +86,9 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 
 		log.Printf("Launching Store\n")
 
-		node.Store(bytes)
+		hash := node.Store(bytes)
+
+		daemon.SendResponse(conn, daemon.OK, hash)
 
 	}
 
