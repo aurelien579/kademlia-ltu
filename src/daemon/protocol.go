@@ -18,8 +18,8 @@ const ERROR = -1
 const OK = 1
 
 type Response struct {
-	resultCode int
-	result     string
+	ResultCode int
+	Result     string
 }
 
 func Encode(c *net.UDPConn, value interface{}) error {
@@ -75,8 +75,8 @@ func ReadCommand(conn *net.UDPConn) (*Command, error) {
 
 func SendResponse(conn *net.UDPConn, code int, result string) {
 	Encode(conn, Response{
-		resultCode: code,
-		result:     result,
+		ResultCode: code,
+		Result:     result,
 	})
 }
 
