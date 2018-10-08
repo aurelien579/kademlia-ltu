@@ -47,11 +47,8 @@ func main() {
 
 	go node.Listen(ip, port)
 
+	ListenDaemon(&node, 40000)
 
-	for {
-		ListenDaemon(&node, 40000)
-	}
-	
 }
 
 func ListenDaemon(node *kademlia.Kademlia, port int) {
@@ -60,11 +57,15 @@ func ListenDaemon(node *kademlia.Kademlia, port int) {
 
 	conn, _ := net.ListenUDP("udp", udpAddr)
 
-	command, _ := daemon.ReadCommand(conn)
+	for {
 
-	log.Printf("Command received : %v\n", command)
+		command, _ := daemon.ReadCommand(conn)
 
-	ExecuteCommand(node, command, conn)
+		log.Printf("Command received : %v\n", command)
+
+		ExecuteCommand(node, command, conn)
+
+	}
 
 }
 
