@@ -4,6 +4,7 @@ import (
 	"daemon"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 )
@@ -40,6 +41,7 @@ func main() {
 		return
 	}
 
+	log.Printf("Sending command: %v\n", command)
 	daemon.SendCommand(conn, command, arg)
 
 	response, err := daemon.ReadResponse(conn)
