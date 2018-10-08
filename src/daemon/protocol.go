@@ -22,7 +22,7 @@ type Response struct {
 	Result     string
 }
 
-func Encode(c *net.UDPConn, value interface{}) error {
+func Encode(c *net.UDPConn, addr *net.UDPAddr, value interface{}) error {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	err := encoder.Encode(value)
@@ -31,17 +31,17 @@ func Encode(c *net.UDPConn, value interface{}) error {
 		return err
 	}
 
-	c.Write(buffer.Bytes())
+	c.WriteTo(buffer.Bytes(), addr)
 
 	return nil
 }
 
-func Decode(c *net.UDPConn, value interface{}) error {
+func Decode(c *net.UDPConn, value interface{}) (*net.UDPAddr, error) {
 	inputBytes := make([]byte, 1024)
 
-	length, _, err := c.ReadFromUDP(inputBytes)
+	length, addr, err := c.ReadFromUDP(inputBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	buf := bytes.NewBuffer(inputBytes[:length])
@@ -49,32 +49,32 @@ func Decode(c *net.UDPConn, value interface{}) error {
 	err = decoder.Decode(value)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return addr, nil
 }
 
-func SendCommand(conn *net.UDPConn, command int, arg string) {
-	Encode(conn, Command{
+func SendCommand(conn *net.UDPConn, addr *net.UDPAddr, command int, arg string) {
+	Encode(conn, addr, Command{
 		Command: command,
 		Arg:     arg,
 	})
 }
 
-func ReadCommand(conn *net.UDPConn) (*Command, error) {
+func ReadCommand(conn *net.UDPConn) (*Command, *net.UDPAddr, error) {
 	var command Command
 
-	err := Decode(conn, &command)
+	addr, err := Decode(conn, &command)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &command, nil
+	return &command, addr, nil
 }
 
-func SendResponse(conn *net.UDPConn, code int, result string) {
-	Encode(conn, Response{
+func SendResponse(conn *net.UDPConn, addr *net.UDPAddr, code int, result string) error {
+	return Encode(conn, addr, Response{
 		ResultCode: code,
 		Result:     result,
 	})
@@ -83,7 +83,7 @@ func SendResponse(conn *net.UDPConn, code int, result string) {
 func ReadResponse(conn *net.UDPConn) (*Response, error) {
 	var response Response
 
-	err := Decode(conn, &response)
+	_, err := Decode(conn, &response)
 	if err != nil {
 		return nil, err
 	}

@@ -59,18 +59,17 @@ func ListenDaemon(node *kademlia.Kademlia, port int) {
 
 	for {
 
-		command, _ := daemon.ReadCommand(conn)
+		command, addr, _ := daemon.ReadCommand(conn)
 
 		log.Printf("Command received : %v\n", command)
 
-		ExecuteCommand(node, command, conn)
+		ExecuteCommand(node, command, conn, addr)
 
 	}
 
 }
 
-func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.UDPConn) {
-
+func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.UDPConn, addr *net.UDPAddr) {
 	switch command.Command {
 
 	case daemon.CMD_GET:
@@ -83,7 +82,7 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 
 		log.Printf("Response received, telling the daemon\n")
 
-		daemon.SendResponse(conn, daemon.OK, s)
+		daemon.SendResponse(conn, addr, daemon.OK, s)
 
 	case daemon.CMD_PUT:
 
@@ -93,10 +92,12 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 
 		hash := node.Store(bytes)
 
-		log.Printf("Response received, telling the daemon\n")
+		log.Printf("Response received, telling the daemon: %v->%v\n", conn.LocalAddr(), conn.RemoteAddr())
 
-		daemon.SendResponse(conn, daemon.OK, hash)
-
+		err := daemon.SendResponse(conn, addr, daemon.OK, hash)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 }
