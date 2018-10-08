@@ -37,16 +37,16 @@ func main() {
 	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:40000")
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		fmt.Printf(err.Error())
+		fmt.Println(err.Error())
 		return
 	}
 
-	log.Printf("Sending command: %v\n", command)
+	log.Printf("Sending command: %d, %s\n", command, arg)
 	daemon.SendCommand(conn, command, arg)
 
 	response, err := daemon.ReadResponse(conn)
 	if err != nil {
-		fmt.Printf(err.Error())
+		fmt.Println(err.Error())
 		return
 	}
 
