@@ -10,8 +10,8 @@ const CMD_GET = 1
 const CMD_PUT = 2
 
 type Command struct {
-	command int
-	arg     string
+	Command int
+	Arg     string
 }
 
 const ERROR = -1
@@ -57,8 +57,8 @@ func Decode(c *net.UDPConn, value interface{}) error {
 
 func SendCommand(conn *net.UDPConn, command int, arg string) {
 	Encode(conn, Command{
-		command: command,
-		arg:     arg,
+		Command: command,
+		Arg:     arg,
 	})
 }
 
