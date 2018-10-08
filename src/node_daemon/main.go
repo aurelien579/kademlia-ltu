@@ -47,7 +47,11 @@ func main() {
 
 	go node.Listen(ip, port)
 
-	ListenDaemon(&node, 40000)
+
+	for {
+		ListenDaemon(&node, 40000)
+	}
+	
 }
 
 func ListenDaemon(node *kademlia.Kademlia, port int) {
@@ -87,6 +91,8 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 		log.Printf("Launching Store\n")
 
 		hash := node.Store(bytes)
+
+		log.Printf("Response received, telling the daemon\n")
 
 		daemon.SendResponse(conn, daemon.OK, hash)
 
