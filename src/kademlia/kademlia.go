@@ -394,7 +394,7 @@ func (kademlia *Kademlia) LookupData(hash string) []byte {
 	return kademlia.Lookup(key, true).([]byte)
 }
 
-func (kademlia *Kademlia) Store(data []byte) {
+func (kademlia *Kademlia) Store(data []byte) string {
 	h := sha1.New()
 	io.WriteString(h, string(data))
 	key := NewKademliaID(hex.EncodeToString(h.Sum(nil)))
@@ -408,6 +408,8 @@ func (kademlia *Kademlia) Store(data []byte) {
 			kademlia.Storage.Store(key.String(), data)
 		}
 	}
+
+	return key.String()
 }
 
 func (node *Kademlia) Bootstrap(contact Contact) {

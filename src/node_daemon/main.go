@@ -14,24 +14,6 @@ const MY_ID = "000000000000000000000000000000000000FFFF"
 const MY_IP = "127.0.0.1"
 const MY_PORT = 3333
 
-func getFreePort(start int) int {
-	for {
-		if start >= 65555 {
-			return 0
-		}
-
-		addr, _ := net.ResolveUDPAddr("udp", "localhost:"+strconv.Itoa(start))
-		conn, err := net.ListenUDP("udp", addr)
-
-		if err != nil {
-			start++
-		} else {
-			conn.Close()
-			return start
-		}
-	}
-}
-
 func getMyIp() string {
 	ifaces, _ := net.Interfaces()
 	for _, i := range ifaces {
@@ -57,7 +39,7 @@ func getMyIp() string {
 func main() {
 	var node kademlia.Kademlia
 	port := 4000
-	ip := getMyIp()
+	ip := "127.0.0.1"
 
 	log.Println(ip)
 
@@ -65,14 +47,10 @@ func main() {
 
 	go node.Listen(ip, port)
 
-	go ListenDaemon(&node, 40000)
-
-
+	ListenDaemon(&node, 40000)
 }
 
-
-
-func  ListenDaemon (node *kademlia.Kademlia, port int) {
+func ListenDaemon(node *kademlia.Kademlia, port int) {
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 
@@ -82,19 +60,15 @@ func  ListenDaemon (node *kademlia.Kademlia, port int) {
 
 	log.Printf("Command received : %v\n", command)
 
-
 	ExecuteCommand(node, command, conn)
-
-
 
 }
 
-
-func ExecuteCommand (node *kademlia.Kademlia, command *daemon.Command, conn *net.UDPConn) {
+func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.UDPConn) {
 
 	switch command.Command {
 
-	case daemon.CMD_GET :
+	case daemon.CMD_GET:
 
 		log.Printf("Launching LookupData : %v\n", command.Arg)
 
@@ -104,9 +78,9 @@ func ExecuteCommand (node *kademlia.Kademlia, command *daemon.Command, conn *net
 
 		log.Printf("Response received, telling the daemon\n")
 
-		daemon.SendResponse(conn, daemon.OK, s )
+		daemon.SendResponse(conn, daemon.OK, s)
 
-	case daemon.CMD_PUT :
+	case daemon.CMD_PUT:
 
 		bytes, _ := ioutil.ReadFile(command.Arg)
 

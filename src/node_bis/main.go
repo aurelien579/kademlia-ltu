@@ -20,11 +20,11 @@ func main() {
 
 	go node.Listen(MY_IP, MY_PORT)
 
-	bytes := []byte("BONJOURRR")
-	fmt.Printf("Data: %v\n ", bytes)
-	node.Store(bytes)
+	//bytes := []byte("BONJOURRR")
+	//fmt.Printf("Data: %v\n ", bytes)
+	//node.Store(bytes)
 
-	//node.Bootstrap(contact)
+	node.Bootstrap(contact)
 
 	for _, c := range node.RoutingTable.FindClosestContacts(node.RoutingTable.Me.ID, 50) {
 		fmt.Println(c)
