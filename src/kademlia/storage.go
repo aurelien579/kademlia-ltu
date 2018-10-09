@@ -27,6 +27,7 @@ type Element2 struct {
 
 func NewStorage(root string) Storage {
 	root = "data/" + root
+	os.Mkdir("data/", 0777)
 	os.Mkdir(root, 0777)
 
 	return Storage{
@@ -117,5 +118,4 @@ func (storage *Storage) DeleteElement(filename string) {
 			storage.filenameTimer = append(storage.filenameTimer[:i], storage.filenameTimer[i+1:]...)
 		}
 	}
-
 }
