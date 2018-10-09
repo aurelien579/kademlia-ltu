@@ -15,16 +15,6 @@ type Network struct {
 	Kademlia *Kademlia
 }
 
-const K uint8 = 2
-
-const MSG_REQUEST uint8 = 1
-const MSG_RESPONSE uint8 = 2
-
-const MSG_PING uint8 = 1
-const MSG_FIND_NODES uint8 = 2
-const MSG_FIND_VALUE uint8 = 3
-const MSG_STORE uint8 = 4
-
 type Header struct {
 	SrcID   KademliaID
 	SrcIP   uint32

@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const REPUBLISH_TIME = 30
-
 type Storage struct {
 	Root          string
 	kademlia      *Kademlia
