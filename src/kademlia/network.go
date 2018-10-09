@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 )
 
 type Network struct {
@@ -42,6 +43,10 @@ type ContactResult struct {
 }
 
 func NewNetwork(id *KademliaID, ip string, port int) Network {
+	gob.Register(FindArguments{})
+	gob.Register(StoreArguments{})
+	gob.Register([]ContactResult{})
+
 	return Network{
 		ID:   id,
 		IP:   IPToLong(ip),
@@ -59,7 +64,14 @@ func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 	}
 }
 
-func Encode(c *net.UDPConn, value interface{}) {
+func (header *Header) createConnection() (*net.UDPConn, error) {
+	addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
+	conn, err := net.DialUDP("udp", nil, addr)
+
+	return conn, err
+}
+
+func Encode(c *net.UDPConn, value Header) {
 	log.Printf("Encoding: %v (%s -> %s)\n", value, c.LocalAddr(), c.RemoteAddr())
 
 	var buffer bytes.Buffer

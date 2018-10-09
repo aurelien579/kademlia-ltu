@@ -42,7 +42,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 
 			channel := make(chan Header)
 
-			bucket.node.RegisterChannel(&olderKnown, MSG_PING, channel)
+			bucket.node.Channels.Add(&olderKnown, MSG_PING, channel)
 
 			bucket.node.Network.SendPingMessage(&olderKnown)
 
@@ -50,7 +50,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 			go func() {
 				<-timer2.C
 
-				bucket.node.DeleteChannel(&olderKnown, MSG_PING)
+				bucket.node.Channels.Delete(&olderKnown, MSG_PING)
 				bucket.list.Remove(bucket.list.Back())
 				bucket.list.PushFront(contact)
 			}()

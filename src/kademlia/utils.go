@@ -2,7 +2,10 @@ package kademlia
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/binary"
+	"encoding/hex"
+	"io"
 	"net"
 	"strconv"
 )
@@ -21,4 +24,10 @@ func IPToStr(ipInt uint32) string {
 	b2 := strconv.FormatInt((ipLong>>8)&0xff, 10)
 	b3 := strconv.FormatInt((ipLong & 0xff), 10)
 	return b0 + "." + b1 + "." + b2 + "." + b3
+}
+
+func HashBytes(data []byte) string {
+	h := sha1.New()
+	io.WriteString(h, string(data))
+	return hex.EncodeToString(h.Sum(nil))
 }

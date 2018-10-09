@@ -2,13 +2,7 @@ package kademlia
 
 import (
 	"bytes"
-	"container/list"
-	"crypto/sha1"
-	"encoding/gob"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"reflect"
@@ -18,27 +12,11 @@ import (
 )
 
 type Kademlia struct {
-	RoutingTable     *RoutingTable
-	Network          Network
-	Storage          Storage
-	ResponseChannels *list.List
-	conn             *net.UDPConn
-	//ResponseHandlers *list.List
+	RoutingTable *RoutingTable
+	Network      Network
+	Storage      Storage
+	Channels     ChannelList
 }
-
-/*type ResponseHandler struct {
-	Contact *Contact
-	F       ResponseHandlerFunc
-	ReqType uint8
-}*/
-
-type ResponseChannel struct {
-	Contact *Contact
-	ReqType uint8
-	Channel chan Header
-}
-
-//type ResponseHandlerFunc func(*Contact, interface{})
 
 func NewKademlia(id string, ip string, port int) Kademlia {
 	me := NewContact(NewKademliaID(id), ip+":"+strconv.Itoa(port))
@@ -54,74 +32,24 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 
 	kademlia.Storage.kademlia = &kademlia
 
-	kademlia.ResponseChannels = list.New()
+	kademlia.Channels = NewChannelList()
 
 	for i := 0; i < IDLength*8; i++ {
 		kademlia.RoutingTable.Buckets[i].node = &kademlia
 	}
 
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
-	gob.Register(FindArguments{})
-	gob.Register(StoreArguments{})
-	gob.Register([]ContactResult{})
 
 	return kademlia
 }
 
-func (kademlia *Kademlia) RegisterChannel(contact *Contact, reqType uint8, c chan Header) {
-	channel := ResponseChannel{
-		Contact: contact,
-		ReqType: reqType,
-		Channel: c,
-	}
+func (kademlia *Kademlia) Listen(ip string, port int) {
+	addr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
+	conn, err := net.ListenUDP("udp", addr)
 
-	kademlia.ResponseChannels.PushBack(channel)
-}
-
-func (kademlia *Kademlia) FindChannel(contact *Contact, reqType uint8) (ResponseChannel, error) {
-	for e := kademlia.ResponseChannels.Front(); e != nil; e = e.Next() {
-		channel := e.Value.(ResponseChannel)
-
-		if *channel.Contact.ID == *contact.ID &&
-			channel.ReqType == reqType {
-			return channel, nil
-		}
-	}
-
-	return ResponseChannel{}, errors.New("Can't find channel")
-}
-
-func (kademlia *Kademlia) DeleteChannel(contact *Contact, reqType uint8) {
-	for e := kademlia.ResponseChannels.Front(); e != nil; e = e.Next() {
-		channel := e.Value.(ResponseChannel)
-
-		if *channel.Contact.ID == *contact.ID &&
-			channel.ReqType == reqType {
-
-			kademlia.ResponseChannels.Remove(e)
-		}
-	}
-}
-
-func (kademlia *Kademlia) SendOnChannel(header *Header) {
-	contact := ContactFromHeader(header)
-	channel, err := kademlia.FindChannel(&contact, header.SubType)
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-
-	channel.Channel <- *header // TODO: test avec pointer
-
-	kademlia.DeleteChannel(&contact, header.SubType)
-}
-
-func (kademlia *Kademlia) Listen(ip string, port int) {
-	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
-
-	conn, err := net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	log.Println(conn.LocalAddr())
@@ -145,16 +73,9 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 	}
 }
 
-func connectTo(header Header) (*net.UDPConn, error) {
-	addr, _ := net.ResolveUDPAddr("udp", IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
-	conn, err := net.DialUDP("udp", nil, addr)
-
-	return conn, err
-}
-
 func (kademlia *Kademlia) HandlePing(header Header) {
 	if header.Type == MSG_REQUEST {
-		conn, err := connectTo(header)
+		conn, err := header.createConnection()
 
 		if err != nil {
 			fmt.Println(err)
@@ -165,12 +86,12 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 		Encode(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
 	} else {
-		kademlia.SendOnChannel(&header)
+		kademlia.Channels.Send(&header)
 	}
 }
 
 func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
-	conn, err := connectTo(header)
+	conn, err := header.createConnection()
 
 	if err != nil {
 		fmt.Println(err)
@@ -201,12 +122,12 @@ func (kademlia *Kademlia) HandleFindNodes(header Header) {
 		var contacts []Contact = kademlia.RoutingTable.FindClosestContacts(&(findArguments.Key), int(findArguments.Count))
 		kademlia.SendContacts(header, contacts)
 	case MSG_RESPONSE:
-		kademlia.SendOnChannel(&header)
+		kademlia.Channels.Send(&header)
 	}
 }
 
 func (kademlia *Kademlia) SendFile(header Header, filename string) {
-	conn, err := connectTo(header)
+	conn, err := header.createConnection()
 
 	if err != nil {
 		fmt.Println(err)
@@ -242,7 +163,7 @@ func (kademlia *Kademlia) HandleFindValue(header Header) {
 		}
 
 	case MSG_RESPONSE:
-		kademlia.SendOnChannel(&header)
+		kademlia.Channels.Send(&header)
 	}
 }
 
@@ -254,8 +175,6 @@ func (kademlia *Kademlia) HandleStore(header Header) {
 	}
 
 	args := header.Arg.(StoreArguments)
-
-	//log.Println("Store received: ", args.Length, args.Data)
 
 	kademlia.Storage.Store(args.Key.String(), args.Data)
 }
@@ -291,7 +210,7 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 		}
 
 		channel := make(chan Header)
-		kademlia.RegisterChannel(target, subType, channel)
+		kademlia.Channels.Add(target, subType, channel)
 
 		if context.lookupData {
 			kademlia.Network.SendFindDataMessage(target, context.target)
@@ -393,9 +312,7 @@ func (kademlia *Kademlia) LookupData(hash string) []byte {
 }
 
 func (kademlia *Kademlia) Store(data []byte) string {
-	h := sha1.New()
-	io.WriteString(h, string(data))
-	key := NewKademliaID(hex.EncodeToString(h.Sum(nil)))
+	key := NewKademliaID(HashBytes(data))
 
 	candidates := kademlia.LookupContact(key)
 
