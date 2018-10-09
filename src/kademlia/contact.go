@@ -27,7 +27,7 @@ func NewContact(id *KademliaID, address string) Contact {
 }
 
 func ContactFromHeader(header *Header) Contact {
-	return NewContact(&(header.SrcID), IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
+	return NewContact(NewKademliaID(header.SrcID), IPToStr(header.SrcIP)+":"+strconv.Itoa(int(header.SrcPort)))
 }
 
 // CalcDistance calculates the distance to the target and
@@ -44,6 +44,12 @@ func (contact *Contact) Closer(otherContact *Contact) bool {
 // String returns a simple string representation of a Contact
 func (contact *Contact) String() string {
 	return fmt.Sprintf(`contact("%s", "%s", "%s", %d)`, contact.ID, contact.Address, contact.distance, contact.State)
+}
+
+func CalcDistances(contacts []Contact, target *KademliaID) {
+	for i := 0; i < len(contacts); i++ {
+		contacts[i].CalcDistance(target)
+	}
 }
 
 // ContactCandidates definition
@@ -74,6 +80,11 @@ func (candidates *ContactCandidates) Append(contacts []Contact) {
 		}
 	}
 	candidates.mutex.Unlock()
+}
+
+func (candidates *ContactCandidates) AppendSorted(contacts []Contact) {
+	candidates.Append(contacts)
+	candidates.Sort()
 }
 
 func (contact Contact) IsIn(candidates ContactCandidates) bool {

@@ -48,35 +48,31 @@ func main() {
 	go node.Listen(ip, port)
 
 	ListenDaemon(&node, 40000)
-
 }
 
 func ListenDaemon(node *kademlia.Kademlia, port int) {
-
-	udpAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
-
-	conn, _ := net.ListenUDP("udp", udpAddr)
+	addr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
+	conn, _ := net.ListenUDP("udp", addr)
 
 	for {
-
 		command, addr, _ := daemon.ReadCommand(conn)
-
 		log.Printf("Command received : %v\n", command)
-
 		ExecuteCommand(node, command, conn, addr)
-
 	}
-
 }
 
 func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.UDPConn, addr *net.UDPAddr) {
 	switch command.Command {
-
 	case daemon.CMD_GET:
 
 		log.Printf("Launching LookupData : %v\n", command.Arg)
 
-		data := node.LookupData(command.Arg)
+		err, data := node.LookupData(command.Arg)
+
+		if err != nil {
+			log.Println(err)
+			daemon.SendResponse(conn, addr, daemon.ERROR, "")
+		}
 
 		s := string(data[:])
 
@@ -85,19 +81,21 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 		daemon.SendResponse(conn, addr, daemon.OK, s)
 
 	case daemon.CMD_PUT:
-
 		bytes, _ := ioutil.ReadFile(command.Arg)
 
 		log.Printf("Launching Store\n")
 
-		hash := node.Store(bytes)
+		err, hash := node.Store(bytes)
+		if err != nil {
+			log.Println(err)
+			daemon.SendResponse(conn, addr, daemon.ERROR, "")
+		}
 
 		log.Printf("Response received, telling the daemon: %v->%v\n", conn.LocalAddr(), conn.RemoteAddr())
 
-		err := daemon.SendResponse(conn, addr, daemon.OK, hash)
+		err = daemon.SendResponse(conn, addr, daemon.OK, hash)
 		if err != nil {
 			log.Println(err)
 		}
 	}
-
 }

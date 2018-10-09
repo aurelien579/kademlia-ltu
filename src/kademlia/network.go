@@ -17,7 +17,7 @@ type Network struct {
 }
 
 type Header struct {
-	SrcID   KademliaID
+	SrcID   string
 	SrcIP   uint32
 	SrcPort uint16
 	Type    uint8 /* Request/Response */
@@ -27,19 +27,40 @@ type Header struct {
 }
 
 type FindArguments struct {
-	Key   KademliaID
+	Key   string
 	Count uint8
 }
 
 type StoreArguments struct {
-	Key    KademliaID
+	Key    string
 	Length int
 	Data   []byte
 }
 
-type ContactResult struct {
-	ID      string
-	Address string
+func (header Header) String() string {
+	str := "header("
+
+	str += header.SrcID + ", " + IPToStr(header.SrcIP) + ":" + strconv.Itoa(int(header.SrcPort)) + ", "
+
+	if header.Type == MSG_REQUEST {
+		str += "REQUEST, "
+	} else {
+		str += "RESPONSE, "
+	}
+
+	if header.SubType == MSG_PING {
+		str += "PING, "
+	} else if header.SubType == MSG_STORE {
+		str += "STORE, "
+	} else if header.SubType == MSG_FIND_NODES {
+		str += "FIND_NODES, "
+	} else {
+		str += "FIND_VALUE, "
+	}
+
+	str += fmt.Sprintf("%v)", header.Arg)
+
+	return str
 }
 
 func NewNetwork(id *KademliaID, ip string, port int) Network {
@@ -56,7 +77,7 @@ func NewNetwork(id *KademliaID, ip string, port int) Network {
 
 func NewHeader(network *Network, typeId uint8, subTypeId uint8) Header {
 	return Header{
-		SrcID:   *network.ID,
+		SrcID:   network.ID.String(),
 		SrcIP:   network.IP,
 		SrcPort: network.Port,
 		Type:    typeId,
@@ -72,15 +93,16 @@ func (header *Header) createConnection() (*net.UDPConn, error) {
 }
 
 func Encode(c *net.UDPConn, value Header) {
-	log.Printf("Encoding: %v (%s -> %s)\n", value, c.LocalAddr(), c.RemoteAddr())
-
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	err := encoder.Encode(value)
 
 	if err != nil {
 		log.Fatalf("[ERROR] Encoding: %v\n", err)
+		return
 	}
+
+	log.Printf("Sending %v \n\t(%s -> %s)\n", value, c.LocalAddr(), c.RemoteAddr())
 
 	c.Write(buffer.Bytes())
 }
@@ -91,10 +113,8 @@ func Decode(c *net.UDPConn, value *Header) error {
 	log.Printf("Listening...\n")
 	length, addr, err := c.ReadFromUDP(inputBytes)
 	if err != nil {
-		log.Fatalf("[ERROR] Reading: %v\n", err)
+		return err
 	}
-
-	log.Printf("Received from : %v\n", addr)
 
 	buf := bytes.NewBuffer(inputBytes[:length])
 
@@ -104,13 +124,13 @@ func Decode(c *net.UDPConn, value *Header) error {
 
 	value.SrcIP = IPToLong(addr.IP.String())
 
-	log.Printf("Decoded: %v\n", value)
+	log.Printf("Received: %v\n", value)
 
 	if err != nil {
-		log.Fatalf("Error decoding: %v\n", err)
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func (network *Network) SendPingMessage(contact *Contact) {
@@ -140,7 +160,7 @@ func (network *Network) sendFindMessage(contact *Contact, key *KademliaID, findT
 	msg := NewHeader(network, MSG_REQUEST, findType)
 	msg.Arg = FindArguments{
 		Count: K,
-		Key:   *key,
+		Key:   key.String(),
 	}
 	Encode(conn, msg)
 
@@ -166,7 +186,7 @@ func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data
 
 	msg := NewHeader(network, MSG_REQUEST, MSG_STORE)
 	msg.Arg = StoreArguments{
-		Key:    *key,
+		Key:    key.String(),
 		Length: len(data),
 		Data:   data,
 	}
