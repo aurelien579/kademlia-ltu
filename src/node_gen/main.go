@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"kademlia"
 	"log"
 	"net"
 	"strconv"
 	"strings"
+	"time"
+
+	fastping "github.com/tatsushid/go-fastping"
 )
 
 const MY_ID = "000000000000000000000000000000000000FFFF"
@@ -52,10 +56,52 @@ func getMyIp() string {
 	return ""
 }
 
+func findContact(ip string) string {
+	p := fastping.NewPinger()
+
+	splitted := strings.Split(ip, ".")
+	mySuffix, _ := strconv.Atoi(splitted[3])
+	prefix := splitted[0] + "." + splitted[1] + "." + splitted[2] + "."
+
+	c := make(chan string)
+
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		c <- addr.IP.String()
+		p.Stop()
+	}
+
+	for i := 1; i < 255; i++ {
+		if i == mySuffix {
+			continue
+		}
+
+		ra, err := net.ResolveIPAddr("ip4:icmp", prefix+strconv.Itoa(i))
+		fmt.Println("Adding:", ra.String())
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		p.AddIPAddr(ra)
+	}
+
+	err := p.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return <-c
+}
+
 func main() {
 	var node kademlia.Kademlia
 	port := 4000
 	ip := getMyIp()
+
+	c := findContact("192.168.0.103")
+
+	log.Println(c)
+	return
 
 	log.Println(ip)
 
