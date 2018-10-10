@@ -3,6 +3,7 @@ node_bis
 node_gen
 dfs
 *.exe
+*.txt
 
 .idea/*
 pkg/*

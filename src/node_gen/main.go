@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const MY_ID = "000000000000000000000000000000000000FFFF"
@@ -64,15 +63,10 @@ func main() {
 
 	go node.Listen(ip, port)
 
-	time.Sleep(300 * time.Millisecond)
+	//time.Sleep(300 * time.Millisecond)
 
 	if ip != "172.17.0.2" {
 		node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000002"), "172.17.0.2:4000"))
-	}
-
-	if ip == "172.17.0.5" {
-		time.Sleep(10 * time.Second)
-		node.Store([]byte("Toto"))
 	}
 
 	for {
