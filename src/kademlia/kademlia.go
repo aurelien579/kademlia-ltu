@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"sync"
@@ -29,12 +28,6 @@ func NewKademlia(id string, ip string, port int) Kademlia {
 		Channels:     NewChannelList(),
 	}
 
-	file, err := os.OpenFile(id+".txt", os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		log.SetOutput(file)
-	}
 	log.SetFlags(0)
 	//log.SetFlags(log.Ltime | log.Lmicroseconds)
 
