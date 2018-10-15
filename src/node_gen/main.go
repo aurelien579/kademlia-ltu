@@ -3,13 +3,11 @@ package main
 import (
 	"fmt"
 	"kademlia"
-	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	fastping "github.com/tatsushid/go-fastping"
 )
 
 const MY_ID = "000000000000000000000000000000000000FFFF"
@@ -56,41 +54,20 @@ func getMyIp() string {
 	return ""
 }
 
-func findContact(ip string) string {
-	p := fastping.NewPinger()
-
-	splitted := strings.Split(ip, ".")
-	mySuffix, _ := strconv.Atoi(splitted[3])
-	prefix := splitted[0] + "." + splitted[1] + "." + splitted[2] + "."
-
-	c := make(chan string)
-
-	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		c <- addr.IP.String()
-		p.Stop()
-	}
-
-	for i := 1; i < 255; i++ {
-		if i == mySuffix {
-			continue
-		}
-
-		ra, err := net.ResolveIPAddr("ip4:icmp", prefix+strconv.Itoa(i))
-		fmt.Println("Adding:", ra.String())
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		p.AddIPAddr(ra)
-	}
-
-	err := p.Run()
+func findContact(name string) string {
+	addrs, err := net.LookupHost(name)
 	if err != nil {
-		fmt.Println(err)
+		time.Sleep(1 * time.Second)
+		fmt.Println("Second attempt...")
+		addrs, err = net.LookupHost(name)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 	}
 
-	return <-c
+	return addrs[0]
 }
 
 func main() {
@@ -98,22 +75,13 @@ func main() {
 	port := 4000
 	ip := getMyIp()
 
-	c := findContact("192.168.0.103")
-
-	log.Println(c)
-	return
-
-	log.Println(ip)
+	contactIp := findContact("bootstrap_node")
 
 	node = kademlia.NewKademlia("000000000000000000000000000000000000000"+string(ip[len(ip)-1]), ip, port)
 
 	go node.Listen(ip, port)
 
-	//time.Sleep(300 * time.Millisecond)
-
-	if ip != "172.17.0.2" {
-		node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000002"), "172.17.0.2:4000"))
-	}
+	node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), contactIp+":4000"))
 
 	for {
 

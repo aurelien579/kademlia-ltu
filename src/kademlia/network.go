@@ -122,9 +122,9 @@ func Decode(c *net.UDPConn, value *Header) error {
 
 	err = decoder.Decode(value)
 
-	value.SrcIP = IPToLong(addr.IP.String())
+	//value.SrcIP = IPToLong(addr.IP.String())
 
-	log.Printf("Received: %v\n", value)
+	log.Printf("Received (%v): %v\n", addr.String(), value)
 
 	if err != nil {
 		return err
