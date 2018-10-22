@@ -70,16 +70,39 @@ func findContact(name string) string {
 	return addrs[0]
 }
 
+func ipToID(ip string) string {
+	splitted := strings.Split(ip, ".")
+	id := "0000000000000000000000000000"
+
+	for _, part := range splitted {
+		missingDigits := 3 - len(part)
+
+		for i := 0; i < missingDigits; i++ {
+			id += "0"
+		}
+
+		for _, digit := range part {
+			id += string(digit)
+		}
+	}
+
+	return id
+}
+
 func main() {
 	var node kademlia.Kademlia
 	port := 4000
 	ip := getMyIp()
+	id := ipToID(ip)
 
-	contactIp := findContact("bootstrap_node")
+	//contactIp := findContact("bootstrap_node")
+	contactIp := "172.17.0.2"
 
-	node = kademlia.NewKademlia("000000000000000000000000000000000000000"+string(ip[len(ip)-1]), ip, port)
+	node = kademlia.NewKademlia(id, ip, port)
 
 	go node.Listen(ip, port)
+
+	time.Sleep(100 * time.Microsecond)
 
 	node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), contactIp+":4000"))
 

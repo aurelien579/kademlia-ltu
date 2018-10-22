@@ -1,5 +1,7 @@
 FROM golang:1.8-alpine
 
+EXPOSE 4000
+
 WORKDIR /go/
 COPY src/ src/
 

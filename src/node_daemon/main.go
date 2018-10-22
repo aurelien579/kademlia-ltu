@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const MY_ID = "000000000000000000000000000000000000FFFF"
@@ -39,13 +40,17 @@ func getMyIp() string {
 func main() {
 	var node kademlia.Kademlia
 	port := 4000
-	ip := "127.0.0.1"
+	ip := "172.17.0.1"
 
 	log.Println(ip)
 
-	node = kademlia.NewKademlia("000000000000000000000000000000000000000"+string(ip[len(ip)-1]), ip, port)
+	node = kademlia.NewKademlia("100000000000000000000000000000000000000"+string(ip[len(ip)-1]), ip, port)
 
 	go node.Listen(ip, port)
+
+	time.Sleep(100 * time.Microsecond)
+
+	node.Bootstrap(kademlia.NewContact(kademlia.NewKademliaID("0000000000000000000000000000000000000001"), "172.17.0.2:4000"))
 
 	ListenDaemon(&node, 40000)
 }

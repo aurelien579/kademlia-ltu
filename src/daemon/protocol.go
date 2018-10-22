@@ -31,7 +31,11 @@ func Encode(c *net.UDPConn, addr *net.UDPAddr, value interface{}) error {
 		return err
 	}
 
-	c.WriteTo(buffer.Bytes(), addr)
+	if addr == nil {
+		c.Write(buffer.Bytes())
+	} else {
+		c.WriteToUDP(buffer.Bytes(), addr)
+	}
 
 	return nil
 }

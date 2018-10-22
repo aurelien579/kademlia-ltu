@@ -42,7 +42,7 @@ func main() {
 	}
 
 	log.Printf("Sending command: %d, %s\n", command, arg)
-	daemon.SendCommand(conn, command, arg)
+	daemon.SendCommand(conn, nil, command, arg)
 
 	response, err := daemon.ReadResponse(conn)
 	if err != nil {

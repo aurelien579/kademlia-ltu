@@ -9,7 +9,7 @@ import (
 func getMyIp() string {
 	ifaces, _ := net.Interfaces()
 	for _, i := range ifaces {
-		if strings.Contains(i.Name, "eth0") {
+		if strings.Contains(i.Name, "eth") || strings.Contains(i.Name, "enp") {
 			addrs, _ := i.Addrs()
 			for _, addr := range addrs {
 				var ip net.IP

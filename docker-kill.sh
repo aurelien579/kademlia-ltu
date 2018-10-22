@@ -1,1 +1,1 @@
-sudo docker stack rm kademlia
+sudo docker kill $(sudo docker ps -q)

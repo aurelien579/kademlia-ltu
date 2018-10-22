@@ -3,7 +3,7 @@ package kademlia
 /* Kademlia constants */
 
 const REPUBLISH_TIME = 30
-const K = 2
+const K = 3
 const ALPHA = 1
 
 /* Protocol constants */
