@@ -3,6 +3,8 @@ package kademlia
 import (
 	"container/list"
 	"fmt"
+	"log"
+	"sync"
 	"time"
 )
 
@@ -11,8 +13,9 @@ import (
 // bucket definition
 // contains a List
 type bucket struct {
-	list *list.List
-	node *Kademlia
+	mutex sync.Mutex
+	list  *list.List
+	node  *Kademlia
 }
 
 // newBucket returns a new instance of a bucket
@@ -36,10 +39,10 @@ func (bucket *bucket) AddContact(contact Contact) {
 
 	if element == nil {
 		if bucket.list.Len() < bucketSize {
+			log.Println("New contact:", contact)
 			bucket.list.PushFront(contact)
 		} else {
 			olderKnown := bucket.list.Back().Value.(Contact)
-			fmt.Printf("OlderKnown : %v\n", olderKnown)
 
 			channel := make(chan Header)
 
@@ -47,17 +50,14 @@ func (bucket *bucket) AddContact(contact Contact) {
 
 			bucket.node.Network.SendPingMessage(&olderKnown)
 
-			timer2 := time.NewTimer(1 * time.Second)
-			go func() {
-				<-timer2.C
-
+			select {
+			case <-channel:
+			case <-time.After(2 * time.Second):
+				fmt.Println("Timeout")
 				bucket.node.Channels.Delete(&olderKnown, MSG_PING)
 				bucket.list.Remove(bucket.list.Back())
 				bucket.list.PushFront(contact)
-			}()
-
-			<-channel
-			bucket.list.MoveToFront(bucket.list.Back())
+			}
 		}
 	} else {
 		bucket.list.MoveToFront(element)

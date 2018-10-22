@@ -45,10 +45,10 @@ func bucketFullFakeNode() {
 	node.Listen("127.0.0.1", 5000)
 }
 
-func TestBucketFull(t *testing.T) {
+func testBucketFull(t *testing.T, port int, otherNode bool) {
 	contacts := []Contact{
 		NewContact(NewKademliaID("0000000000000000000000000000000000000001"), "localhost:5000"),
-		NewContact(NewKademliaID("0000000000000000000000000000000000000002"), "localhost:8001"),
+		NewContact(NewKademliaID("0000000000000000000000000000000000000025"), "localhost:5001"),
 		NewContact(NewKademliaID("0000000000000000000000000000000000000003"), "localhost:8001"),
 		NewContact(NewKademliaID("0000000000000000000000000000000000000004"), "localhost:8001"),
 		NewContact(NewKademliaID("0000000000000000000000000000000000000005"), "localhost:8001"),
@@ -70,30 +70,47 @@ func TestBucketFull(t *testing.T) {
 		NewContact(NewKademliaID("0000000000000000000000000000000000000021"), "localhost:8001"),
 	}
 
-	go bucketFullFakeNode()
+	if otherNode {
+		go bucketFullFakeNode()
+	}
 
-	node := NewKademlia("0000000000000000000000000000000000000002", "127.0.0.1", 5001)
-	go node.Listen("127.0.0.1", 5001)
-
-	time.Sleep(100 * time.Microsecond)
+	node := NewKademlia("0000000000000000000000000000000000000002", "127.0.0.1", port)
+	go node.Listen("127.0.0.1", port)
 
 	for _, c := range contacts {
 		node.RoutingTable.Buckets[158].AddContact(c)
 	}
 
-	time.Sleep(100 * time.Microsecond)
+	if otherNode {
+		time.Sleep(2 * time.Second)
+	} else {
+		time.Sleep(10 * time.Second)
+	}
 
 	fmt.Println("Contacts added")
 
-	//index := node.RoutingTable.getBucketIndex(contacts[0].ID)
-	fmt.Println(node.RoutingTable.Buckets[158].Len())
+	if node.RoutingTable.Buckets[158].Len() > 20 {
+		t.Fatal("Bucket over capacity")
+	}
 
 	for e := node.RoutingTable.Buckets[158].list.Front(); e != nil; e = e.Next() {
-		fmt.Println(e.Value.(Contact).ID)
-
 		nodeID := e.Value.(Contact).ID
-		if nodeID.Equals(contacts[0].ID) {
-			t.Fail()
+
+		if otherNode {
+			if nodeID.Equals(contacts[len(contacts)-1].ID) {
+				t.Error("21st contact in the bucket")
+				t.Fail()
+			}
+		} else {
+			if nodeID.Equals(contacts[0].ID) {
+				t.Error("1st contact in the bucket")
+				t.Fail()
+			}
 		}
 	}
+}
+
+func TestBucketFull1(t *testing.T) {
+	testBucketFull(t, 5002, false)
+	testBucketFull(t, 5001, true)
 }

@@ -1,7 +1,5 @@
 package kademlia
 
-import "log"
-
 const bucketSize = 20
 
 // RoutingTable definition
@@ -23,8 +21,6 @@ func NewRoutingTable(me Contact) *RoutingTable {
 
 // AddContact add a new contact to the correct Bucket
 func (routingTable *RoutingTable) AddContact(contact Contact) {
-	log.Println("New contact:", contact)
-
 	bucketIndex := routingTable.getBucketIndex(contact.ID)
 	bucket := routingTable.Buckets[bucketIndex]
 	bucket.AddContact(contact)
