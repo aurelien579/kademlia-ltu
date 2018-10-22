@@ -2,6 +2,7 @@ package kademlia
 
 import (
 	"container/list"
+	"fmt"
 	"time"
 )
 
@@ -37,8 +38,8 @@ func (bucket *bucket) AddContact(contact Contact) {
 		if bucket.list.Len() < bucketSize {
 			bucket.list.PushFront(contact)
 		} else {
-
 			olderKnown := bucket.list.Back().Value.(Contact)
+			fmt.Printf("OlderKnown : %v\n", olderKnown)
 
 			channel := make(chan Header)
 
