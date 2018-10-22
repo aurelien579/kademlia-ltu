@@ -1,3 +1,5 @@
+// +build !bootstrap
+
 package kademlia
 
 import (

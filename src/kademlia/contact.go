@@ -98,6 +98,7 @@ func (contact Contact) IsIn(candidates ContactCandidates) bool {
 
 // GetContacts returns the first count number of Contacts
 func (candidates *ContactCandidates) GetContacts(count int) []Contact {
+	count = Min(count, len(candidates.contacts))
 	return candidates.contacts[:count]
 }
 

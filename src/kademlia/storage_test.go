@@ -9,7 +9,7 @@ func TestStorage(t *testing.T) {
 	storage.deleteFile("Unexisting file")
 
 	storage.Store("test.txt", []byte("bonjour"))
-	storage.Store("test.txt", []byte("bonjour2"))
+	storage.Store("test.txt", []byte("bonjour"))
 
 	out := storage.Read("test.txt")
 	if string(out) != "bonjour" {
