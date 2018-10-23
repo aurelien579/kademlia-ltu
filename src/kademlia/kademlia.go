@@ -69,6 +69,10 @@ func (kademlia *Kademlia) Listen(ip string, port int) {
 			go kademlia.HandleFindValue(header)
 		case MSG_STORE:
 			go kademlia.HandleStore(header)
+		case MSG_PIN:
+			go kademlia.HandlePin(header)
+		case MSG_UNPIN:
+			go kademlia.HandleUnpin(header)
 		}
 	}
 }
@@ -166,7 +170,31 @@ func (kademlia *Kademlia) HandleStore(header Header) {
 
 	args := header.Arg.(StoreArguments)
 
-	kademlia.Storage.Store(args.Key, args.Data)
+	kademlia.Storage.Store(args.Key, args.Data, false)
+}
+
+func (kademlia *Kademlia) HandlePin(header Header) {
+	log.Println("HANDLER PIN: ", header)
+
+	if header.Type != MSG_REQUEST {
+		return
+	}
+
+	args := header.Arg.(StoreArguments)
+
+	kademlia.Storage.Store(args.Key, args.Data, true)
+}
+
+func (kademlia *Kademlia) HandleUnpin(header Header) {
+	log.Println("HANDLER UNPIN: ", header)
+
+	if header.Type != MSG_REQUEST {
+		return
+	}
+
+	args := header.Arg.(StoreArguments)
+
+	kademlia.Storage.Unpin(args.Key)
 }
 
 type ThreadContext struct {
