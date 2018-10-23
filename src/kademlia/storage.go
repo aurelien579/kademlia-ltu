@@ -21,6 +21,7 @@ type FileInfo struct {
 	filename       string
 	timerRepublish *time.Timer
 	timerDelete    *time.Timer
+	pin bool
 }
 
 func NewStorage(root string) *Storage {
@@ -87,18 +88,24 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 }
 
 func (storage *Storage) createFileInfo(filename string, data []byte, pin bool) FileInfo {
-	timerRepublish := storage.createTimerRepublish(data)
+	timerRepublish := storage.createTimerRepublish(data, filename, pin)
 	var timerDelete *time.Timer = nil
 
 	if !pin {
 		timerDelete = storage.createTimerDelete(filename)
 	}
 
-	return FileInfo{filename, timerRepublish, timerDelete}
+	return FileInfo{filename, timerRepublish, timerDelete, pin}
 }
 
 func (storage *Storage) updateFileInfo(fileInfo *FileInfo, filename string, pin bool) {
 	fileInfo.timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
+
+	if fileInfo.pin == false{
+		if pin == true{
+			fileInfo.pin = true
+		}
+	}
 
 	if pin == true {
 		fileInfo.timerDelete = nil
@@ -119,10 +126,14 @@ func (storage *Storage) createTimerDelete(filename string) *time.Timer {
 	})
 }
 
-func (storage *Storage) createTimerRepublish(data []byte) *time.Timer {
+func (storage *Storage) createTimerRepublish(data []byte, filename string, pin bool) *time.Timer {
 	return time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
 		log.Printf("Republish id %s\n", storage.kademlia.RoutingTable.Me.ID.String())
 		storage.kademlia.Store(data)
+		fileInfo := storage.findFileInfo(filename)
+		if fileInfo.pin {
+			fileInfo.timerRepublish.Reset(REPUBLISH_TIME*time.Second)
+		}
 	})
 }
 
@@ -163,4 +174,5 @@ func (storage *Storage) Unpin(filename string) {
 	if fileInfo.timerDelete == nil {
 		fileInfo.timerDelete = storage.createTimerDelete(filename)
 	}
+	fileInfo.pin = false
 }
