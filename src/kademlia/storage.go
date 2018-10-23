@@ -80,7 +80,15 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 				if pin == true {
 					storage.filenameTimer[i].timerDelete = nil
 				} else {
-					storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+						if storage.filenameTimer[i].timerDelete == nil {
+							storage.filenameTimer[i].timerDelete = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+								storage.deleteFile(filename)
+								storage.DeleteElement(filename)
+							})
+						} else {
+							storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+						}
+
 				}
 
 			}
@@ -90,6 +98,7 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 
 		timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
 			storage.kademlia.Store(data)
+			fmt.Printf("Republish id %s\n", storage.kademlia.RoutingTable.Me.String())
 		})
 
 		var elem Element2
