@@ -61,7 +61,7 @@ func (storage *Storage) Read(filename string) []byte {
 	return bytes
 }
 
-func (storage *Storage) Store(filename string, data []byte) {
+func (storage *Storage) Store(filename string, data []byte, pin bool) {
 	log.Println("Store: ", filename)
 
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
@@ -76,44 +76,70 @@ func (storage *Storage) Store(filename string, data []byte) {
 		for i := 0; i < len(storage.filenameTimer); i++ {
 			if storage.filenameTimer[i].filename == filename {
 				storage.filenameTimer[i].timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
-				storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+				if (pin ==true){
+					storage.filenameTimer[i].timerDelete = nil
+				} else{
+					storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+				}
 			}
 		}
-	} else {
-		log.Println("the file doesn't exist: ", filename)
+		} else {
+			log.Println("the file doesn't exist: ", filename)
 
-		timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
-			storage.kademlia.Store(data)
-		})
+			timerRepublish := time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
+				storage.kademlia.Store(data)
+			})
 
-		timerDelete := time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
-			storage.deleteFile(filename)
-			storage.DeleteElement(filename)
-		})
+			var elem Element2
 
-		elem := Element2{filename, timerRepublish, timerDelete}
-		storage.filenameTimer = append(storage.filenameTimer, elem)
+			if (pin == true){
+				timerDelete := time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+					storage.deleteFile(filename)
+					storage.DeleteElement(filename)
+				})
+				elem := Element2{filename, timerRepublish, timerDelete}
+			} else{
+				elem := Element2{filename, timerRepublish, nil}
+			}
+
+			storage.filenameTimer = append(storage.filenameTimer, elem)
+		}
+
+		storage.mutex.Unlock()
 	}
 
-	storage.mutex.Unlock()
-}
+	func (storage *Storage) Exist(filename string) bool {
+		for i := 0; i < len(storage.filenameTimer); i++ {
+			if storage.filenameTimer[i].filename == filename {
+				return true
+			}
+		}
 
-func (storage *Storage) Exist(filename string) bool {
-	for i := 0; i < len(storage.filenameTimer); i++ {
-		if storage.filenameTimer[i].filename == filename {
-			return true
+		return false
+	}
+
+	func (storage *Storage) DeleteElement(filename string) {
+		for i := 0; i < len(storage.filenameTimer); i++ {
+			if storage.filenameTimer[i].filename == filename {
+				storage.filenameTimer[i].timerRepublish.Stop()
+				storage.filenameTimer[i].timerDelete.Stop()
+				storage.filenameTimer = append(storage.filenameTimer[:i], storage.filenameTimer[i+1:]...)
+			}
 		}
 	}
 
-	return false
-}
+func (storage *Storage) Unpin (filename string){
 
-func (storage *Storage) DeleteElement(filename string) {
-	for i := 0; i < len(storage.filenameTimer); i++ {
-		if storage.filenameTimer[i].filename == filename {
-			storage.filenameTimer[i].timerRepublish.Stop()
-			storage.filenameTimer[i].timerDelete.Stop()
-			storage.filenameTimer = append(storage.filenameTimer[:i], storage.filenameTimer[i+1:]...)
+		for i := 0; i < len(storage.filenameTimer); i++ {
+			if storage.filenameTimer[i].filename == filename {
+				if storage.filenameTimer[i].timerDelete == nil {
+					storage.filenameTimer[i].timerDelete =  time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+						storage.deleteFile(filename)
+						storage.DeleteElement(filename)
+					})
+				}
+			}
+
 		}
+
 	}
-}
