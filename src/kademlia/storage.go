@@ -23,12 +23,12 @@ type FileInfo struct {
 	timerDelete    *time.Timer
 }
 
-func NewStorage(root string) Storage {
+func NewStorage(root string) *Storage {
 	root = "data/" + root
 	os.Mkdir("data/", 0777)
 	os.Mkdir(root, 0777)
 
-	return Storage{
+	return &Storage{
 		Root: root,
 	}
 }
@@ -63,7 +63,6 @@ func (storage *Storage) Read(filename string) []byte {
 
 func (storage *Storage) Store(filename string, data []byte, pin bool) {
 	log.Println("Store: ", filename)
-	log.Printf("%s %v\n", storage.kademlia.RoutingTable.Me.ID.String(), storage.fileInfos)
 
 	ioutil.WriteFile(storage.getPath(filename), data, 0644)
 
@@ -81,9 +80,7 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 
 		fileInfo := storage.createFileInfo(filename, data, pin)
 
-		log.Printf("Adding file: %s\n", fileInfo.filename)
 		storage.fileInfos = append(storage.fileInfos, fileInfo)
-		log.Printf("%s %v\n", storage.kademlia.RoutingTable.Me.ID.String(), storage.fileInfos)
 	}
 
 	storage.mutex.Unlock()
@@ -116,7 +113,7 @@ func (storage *Storage) updateFileInfo(fileInfo *FileInfo, filename string, pin 
 
 func (storage *Storage) createTimerDelete(filename string) *time.Timer {
 	return time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
-		log.Printf("DELETING FILE")
+		log.Printf("DELETING FILE %s\n", storage.kademlia.RoutingTable.Me.ID.String())
 		storage.deleteFile(filename)
 		storage.DeleteElement(filename)
 	})
@@ -124,7 +121,7 @@ func (storage *Storage) createTimerDelete(filename string) *time.Timer {
 
 func (storage *Storage) createTimerRepublish(data []byte) *time.Timer {
 	return time.AfterFunc(1*REPUBLISH_TIME*time.Second, func() {
-		log.Printf("Republish id %s\n", storage.kademlia.RoutingTable.Me.String())
+		log.Printf("Republish id %s\n", storage.kademlia.RoutingTable.Me.ID.String())
 		storage.kademlia.Store(data)
 	})
 }

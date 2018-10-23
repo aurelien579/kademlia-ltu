@@ -14,9 +14,9 @@ import (
 
 type Kademlia struct {
 	RoutingTable *RoutingTable
-	Network      Network
-	Storage      Storage
-	Channels     ChannelList
+	Network      *Network
+	Storage      *Storage
+	Channels     *ChannelList
 }
 
 func NewKademlia(id string, ip string, port int) Kademlia {
@@ -88,7 +88,7 @@ func (kademlia *Kademlia) HandlePing(header Header) {
 
 		time.Sleep(1 * time.Second)
 
-		Encode(conn, NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_PING))
+		Encode(conn, NewHeader(kademlia.Network, MSG_RESPONSE, MSG_PING))
 	} else {
 		kademlia.Channels.Send(&header)
 	}
@@ -102,7 +102,7 @@ func (kademlia *Kademlia) SendContacts(header Header, contacts []Contact) {
 		return
 	}
 
-	header = NewHeader(&kademlia.Network, MSG_RESPONSE, header.SubType)
+	header = NewHeader(kademlia.Network, MSG_RESPONSE, header.SubType)
 	header.Arg = ContactsToContactResults(contacts)
 
 	Encode(conn, header)
@@ -128,7 +128,7 @@ func (kademlia *Kademlia) SendFile(header Header, filename string) {
 		return
 	}
 
-	msg := NewHeader(&kademlia.Network, MSG_RESPONSE, MSG_FIND_VALUE)
+	msg := NewHeader(kademlia.Network, MSG_RESPONSE, MSG_FIND_VALUE)
 
 	data := kademlia.Storage.Read(filename)
 

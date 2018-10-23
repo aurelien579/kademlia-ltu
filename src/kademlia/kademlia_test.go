@@ -94,13 +94,13 @@ func TestKademliaPin(t *testing.T) {
 
 	time.Sleep(100 * time.Microsecond)
 
-	key := NewKademliaID("00000000000000000000000000000000000000FF")
 	data := []byte("TEST")
+	key := NewKademliaID(HashBytes(data))
 
 	log.Printf("Key: %s\n", key.String())
 
 	contact := contacts[8001]
-	node.Network.SendPinMessage(&contact, key, data)
+	node.Network.SendStoreMessage(&contact, key, data)
 
 	time.Sleep(60 * time.Second)
 }

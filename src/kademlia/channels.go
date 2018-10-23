@@ -16,8 +16,8 @@ type ChannelList struct {
 	*list.List
 }
 
-func NewChannelList() ChannelList {
-	return ChannelList{
+func NewChannelList() *ChannelList {
+	return &ChannelList{
 		List: list.New(),
 	}
 }

@@ -67,12 +67,12 @@ func (header Header) String() string {
 	return str
 }
 
-func NewNetwork(id *KademliaID, ip string, port int) Network {
+func NewNetwork(id *KademliaID, ip string, port int) *Network {
 	gob.Register(FindArguments{})
 	gob.Register(StoreArguments{})
 	gob.Register([]ContactResult{})
 
-	return Network{
+	return &Network{
 		ID:   id,
 		IP:   IPToLong(ip),
 		Port: uint16(port),
