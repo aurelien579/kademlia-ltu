@@ -11,13 +11,13 @@ import (
 )
 
 type Storage struct {
-	Root          string
-	kademlia      *Kademlia
-	filenameTimer []Element2
-	mutex         sync.Mutex
+	Root      string
+	kademlia  *Kademlia
+	fileInfos []FileInfo
+	mutex     sync.Mutex
 }
 
-type Element2 struct {
+type FileInfo struct {
 	filename       string
 	timerRepublish *time.Timer
 	timerDelete    *time.Timer
@@ -68,26 +68,26 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 
 	storage.mutex.Lock()
 
-	var exist = storage.Exist(filename)
+	var exist = storage.ExistsElement(filename)
 
 	if exist {
 		log.Println("the file exist: ", filename)
 
-		for i := 0; i < len(storage.filenameTimer); i++ {
-			if storage.filenameTimer[i].filename == filename {
-				storage.filenameTimer[i].timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
+		for i := 0; i < len(storage.fileInfos); i++ {
+			if storage.fileInfos[i].filename == filename {
+				storage.fileInfos[i].timerRepublish.Reset(1 * REPUBLISH_TIME * time.Second)
 
 				if pin == true {
-					storage.filenameTimer[i].timerDelete = nil
+					storage.fileInfos[i].timerDelete = nil
 				} else {
-						if storage.filenameTimer[i].timerDelete == nil {
-							storage.filenameTimer[i].timerDelete = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
-								storage.deleteFile(filename)
-								storage.DeleteElement(filename)
-							})
-						} else {
-							storage.filenameTimer[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
-						}
+					if storage.fileInfos[i].timerDelete == nil {
+						storage.fileInfos[i].timerDelete = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+							storage.deleteFile(filename)
+							storage.DeleteElement(filename)
+						})
+					} else {
+						storage.fileInfos[i].timerDelete.Reset(2 * REPUBLISH_TIME * time.Second)
+					}
 
 				}
 
@@ -101,28 +101,37 @@ func (storage *Storage) Store(filename string, data []byte, pin bool) {
 			fmt.Printf("Republish id %s\n", storage.kademlia.RoutingTable.Me.String())
 		})
 
-		var elem Element2
+		var elem FileInfo
 
 		if pin == true {
-			elem = Element2{filename, timerRepublish, nil}
+			elem = FileInfo{filename, timerRepublish, nil}
 		} else {
 
 			timerDelete := time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
 				storage.deleteFile(filename)
 				storage.DeleteElement(filename)
 			})
-			elem = Element2{filename, timerRepublish, timerDelete}
+			elem = FileInfo{filename, timerRepublish, timerDelete}
 		}
 
-		storage.filenameTimer = append(storage.filenameTimer, elem)
+		log.Printf("Adding file: %s\n", elem.filename)
+		storage.fileInfos = append(storage.fileInfos, elem)
 	}
 
 	storage.mutex.Unlock()
 }
 
-func (storage *Storage) Exist(filename string) bool {
-	for i := 0; i < len(storage.filenameTimer); i++ {
-		if storage.filenameTimer[i].filename == filename {
+func createTimerDelete() *time.Timer {
+
+}
+
+func createTimerRepublish() *time.Timer {
+
+}
+
+func (storage *Storage) ExistsElement(filename string) bool {
+	for i := 0; i < len(storage.fileInfos); i++ {
+		if storage.fileInfos[i].filename == filename {
 			return true
 		}
 	}
@@ -131,21 +140,23 @@ func (storage *Storage) Exist(filename string) bool {
 }
 
 func (storage *Storage) DeleteElement(filename string) {
-	for i := 0; i < len(storage.filenameTimer); i++ {
-		if storage.filenameTimer[i].filename == filename {
-			storage.filenameTimer[i].timerRepublish.Stop()
-			storage.filenameTimer[i].timerDelete.Stop()
-			storage.filenameTimer = append(storage.filenameTimer[:i], storage.filenameTimer[i+1:]...)
+	log.Printf("%s is deleting %s\n", storage.kademlia.RoutingTable.Me.ID.String(), filename)
+
+	for i := 0; i < len(storage.fileInfos); i++ {
+		if storage.fileInfos[i].filename == filename {
+			storage.fileInfos[i].timerRepublish.Stop()
+			storage.fileInfos[i].timerDelete.Stop()
+			storage.fileInfos = append(storage.fileInfos[:i], storage.fileInfos[i+1:]...)
 		}
 	}
 }
 
 func (storage *Storage) Unpin(filename string) {
 
-	for i := 0; i < len(storage.filenameTimer); i++ {
-		if storage.filenameTimer[i].filename == filename {
-			if storage.filenameTimer[i].timerDelete == nil {
-				storage.filenameTimer[i].timerDelete = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
+	for i := 0; i < len(storage.fileInfos); i++ {
+		if storage.fileInfos[i].filename == filename {
+			if storage.fileInfos[i].timerDelete == nil {
+				storage.fileInfos[i].timerDelete = time.AfterFunc(2*REPUBLISH_TIME*time.Second, func() {
 					storage.deleteFile(filename)
 					storage.DeleteElement(filename)
 				})
