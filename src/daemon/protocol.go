@@ -8,6 +8,8 @@ import (
 
 const CMD_GET = 1
 const CMD_PUT = 2
+const CMD_UNPIN = 3
+const CMD_PIN = 4
 
 type Command struct {
 	Command int

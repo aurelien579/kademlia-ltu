@@ -102,5 +102,30 @@ func ExecuteCommand(node *kademlia.Kademlia, command *daemon.Command, conn *net.
 		if err != nil {
 			log.Println(err)
 		}
+	case daemon.CMD_PIN:
+		bytes, _ := ioutil.ReadFile(command.Arg)
+
+		log.Printf("Launching Store\n")
+
+		err, hash := node.Store(bytes)
+		if err != nil {
+			log.Println(err)
+			daemon.SendResponse(conn, addr, daemon.ERROR, "")
+		}
+
+		node.Storage.Store(hash, bytes, true)
+
+		log.Printf("Response received, telling the daemon: %v->%v\n", conn.LocalAddr(), conn.RemoteAddr())
+
+		err = daemon.SendResponse(conn, addr, daemon.OK, hash)
+		if err != nil {
+			log.Println(err)
+		}
+	case daemon.CMD_UNPIN:
+		node.Storage.Unpin(command.Arg)
+		err := daemon.SendResponse(conn, addr, daemon.OK, "")
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }

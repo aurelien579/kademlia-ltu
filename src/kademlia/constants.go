@@ -17,3 +17,5 @@ const MSG_FIND_VALUE uint8 = 3
 const MSG_STORE uint8 = 4
 const MSG_PIN uint8 = 5
 const MSG_UNPIN uint8 = 6
+
+const LOG_LOOKUP = false

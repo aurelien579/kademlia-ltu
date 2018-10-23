@@ -100,7 +100,8 @@ func TestKademliaPin(t *testing.T) {
 	log.Printf("Key: %s\n", key.String())
 
 	contact := contacts[8001]
-	node.Network.SendStoreMessage(&contact, key, data)
+	node.Network.SendPinMessage(&contact, key, data)
+	node.Network.SendUnpinMessage(&contact, key)
 
 	time.Sleep(60 * time.Second)
 }

@@ -40,27 +40,39 @@ func (bucket *bucket) AddContact(contact Contact) {
 	if element == nil {
 		if bucket.list.Len() < bucketSize {
 			log.Println("New contact:", contact)
+			bucket.mutex.Lock()
+
 			bucket.list.PushFront(contact)
+
+			bucket.mutex.Unlock()
 		} else {
-			olderKnown := bucket.list.Back().Value.(Contact)
+			go (func() {
+				olderKnown := bucket.list.Back().Value.(Contact)
 
-			channel := make(chan Header)
+				channel := make(chan Header)
 
-			bucket.node.Channels.Add(&olderKnown, MSG_PING, channel)
+				bucket.node.Channels.Add(&olderKnown, MSG_PING, channel)
 
-			bucket.node.Network.SendPingMessage(&olderKnown)
+				bucket.node.Network.SendPingMessage(&olderKnown)
 
-			select {
-			case <-channel:
-			case <-time.After(2 * time.Second):
-				fmt.Println("Timeout")
-				bucket.node.Channels.Delete(&olderKnown, MSG_PING)
-				bucket.list.Remove(bucket.list.Back())
-				bucket.list.PushFront(contact)
-			}
+				select {
+				case <-channel:
+				case <-time.After(2 * time.Second):
+					bucket.mutex.Lock()
+
+					fmt.Println("Timeout")
+					bucket.node.Channels.Delete(&olderKnown, MSG_PING)
+					bucket.list.Remove(bucket.list.Back())
+					bucket.list.PushFront(contact)
+
+					bucket.mutex.Unlock()
+				}
+			})()
 		}
 	} else {
+		bucket.mutex.Lock()
 		bucket.list.MoveToFront(element)
+		bucket.mutex.Unlock()
 	}
 }
 
@@ -69,11 +81,15 @@ func (bucket *bucket) AddContact(contact Contact) {
 func (bucket *bucket) GetContactAndCalcDistance(target *KademliaID) []Contact {
 	var contacts []Contact
 
+	bucket.mutex.Lock()
+
 	for e := bucket.list.Front(); e != nil; e = e.Next() {
 		contact := e.Value.(Contact)
 		contact.CalcDistance(target)
 		contacts = append(contacts, contact)
 	}
+
+	bucket.mutex.Unlock()
 
 	return contacts
 }

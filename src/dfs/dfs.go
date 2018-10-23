@@ -14,6 +14,10 @@ func parseCommand(str string) (int, error) {
 		return daemon.CMD_GET, nil
 	} else if str == "put" {
 		return daemon.CMD_PUT, nil
+	} else if str == "pin" {
+		return daemon.CMD_PIN, nil
+	} else if str == "unpin" {
+		return daemon.CMD_UNPIN, nil
 	} else {
 		return -1, errors.New("Invalid command")
 	}

@@ -208,8 +208,10 @@ type ThreadContext struct {
 }
 
 func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
-	log.Printf("=====================  Thread %d starting  =====================\n\n", i)
-	log.Println("Initial candidates: ", context.candidates)
+	if LOG_LOOKUP {
+		log.Printf("=====================  Thread %d starting  =====================\n\n", i)
+		log.Println("Initial candidates: ", context.candidates)
+	}
 
 	for !context.done {
 		target, err := context.candidates.GetClosestUnTook()
@@ -220,7 +222,9 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 			continue
 		}
 
-		log.Printf("Thread %d target: %v\n", i, target)
+		if LOG_LOOKUP {
+			log.Printf("Thread %d target: %v\n", i, target)
+		}
 
 		var subType = MSG_FIND_NODES
 		if context.lookupData {
@@ -249,12 +253,13 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 			contacts := ContactResultsToContacts(header.Arg.([]ContactResult))
 			CalcDistances(contacts, context.target)
 
-			log.Printf("Thread %d results: [\n", i)
-			for _, r := range contacts {
-				log.Println("\t", r)
+			if LOG_LOOKUP {
+				log.Printf("Thread %d results: [\n", i)
+				for _, r := range contacts {
+					log.Println("\t", r)
+				}
+				log.Println("]")
 			}
-			log.Println("]")
-
 			context.candidates.AppendSorted(contacts)
 		} else {
 			context.done = true
@@ -275,11 +280,15 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 
 	context.wg.Done()
 
-	log.Printf("=====================  Thread %d done  =====================\n", i)
+	if LOG_LOOKUP {
+		log.Printf("=====================  Thread %d done  =====================\n", i)
+	}
 }
 
 func (kademlia *Kademlia) Lookup(key *KademliaID, lookupData bool) (error, []Contact, []byte) {
-	log.Printf("Starting lookup on %s\n", key.String())
+	if LOG_LOOKUP {
+		log.Printf("Starting lookup on %s\n", key.String())
+	}
 
 	context := ThreadContext{
 		done:       false,
@@ -309,10 +318,16 @@ func (kademlia *Kademlia) Lookup(key *KademliaID, lookupData bool) (error, []Con
 	context.wg.Wait()
 
 	if context.lookupData {
-		log.Println("Lookup data done")
+		if LOG_LOOKUP {
+			log.Println("Lookup data done")
+		}
+
 		return nil, nil, context.buffer.Bytes()
 	} else {
-		log.Printf("Lookup contacts done. Results: \n%v\n", context.candidates)
+		if LOG_LOOKUP {
+			log.Printf("Lookup contacts done. Results: \n%v\n", context.candidates)
+		}
+
 		return nil, context.candidates.GetContacts(K), nil
 	}
 }
