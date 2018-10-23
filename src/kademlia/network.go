@@ -194,3 +194,41 @@ func (network *Network) SendStoreMessage(contact *Contact, key *KademliaID, data
 
 	conn.Close()
 }
+
+func (network *Network) SendPinMessage(contact *Contact, key *KademliaID, data []byte) {
+	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
+	conn, err := net.DialUDP("udp", nil, addr)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	msg := NewHeader(network, MSG_REQUEST, MSG_PIN)
+	msg.Arg = StoreArguments{
+		Key:    key.String(),
+		Length: len(data),
+		Data:   data,
+	}
+	Encode(conn, msg)
+
+	conn.Close()
+}
+
+func (network *Network) SendUnpinMessage(contact *Contact, key *KademliaID) {
+	addr, _ := net.ResolveUDPAddr("udp", contact.Address)
+	conn, err := net.DialUDP("udp", nil, addr)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	msg := NewHeader(network, MSG_REQUEST, MSG_UNPIN)
+	msg.Arg = StoreArguments{
+		Key: key.String(),
+	}
+	Encode(conn, msg)
+
+	conn.Close()
+}
