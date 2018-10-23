@@ -212,7 +212,7 @@ func (kademlia *Kademlia) lookupThread(i int, context *ThreadContext) {
 	log.Println("Initial candidates: ", context.candidates)
 
 	for !context.done {
-		target, err := context.candidates.GetClosestUnTook(int(K))
+		target, err := context.candidates.GetClosestUnTook()
 
 		if err != nil {
 			fmt.Println(err)
@@ -341,7 +341,7 @@ func (kademlia *Kademlia) Store(data []byte) (error, string) {
 		if contacts[i].ID != kademlia.RoutingTable.Me.ID {
 			kademlia.Network.SendStoreMessage(&contacts[i], key, data)
 		} else {
-			kademlia.Storage.Store(key.String(), data)
+			kademlia.Storage.Store(key.String(), data, false)
 		}
 	}
 

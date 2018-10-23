@@ -54,6 +54,10 @@ func (header Header) String() string {
 		str += "STORE, "
 	} else if header.SubType == MSG_FIND_NODES {
 		str += "FIND_NODES, "
+	} else if header.SubType == MSG_PIN {
+		str += "PIN, "
+	} else if header.SubType == MSG_UNPIN {
+		str += "UNPIN, "
 	} else {
 		str += "FIND_VALUE, "
 	}

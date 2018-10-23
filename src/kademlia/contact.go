@@ -142,10 +142,10 @@ func Min(a, b int) int {
 
 }
 
-func (candidates *ContactCandidates) GetClosestUnTook(k int) (*Contact, error) {
+func (candidates *ContactCandidates) GetClosestUnTook() (*Contact, error) {
 
 	candidates.mutex.Lock()
-	for i := 0; i < Min(k, len(candidates.contacts)); i++ {
+	for i := 0; i < len(candidates.contacts); i++ {
 		if candidates.contacts[i].State == UNDONE {
 			candidates.contacts[i].State = TOOK
 			candidates.mutex.Unlock()

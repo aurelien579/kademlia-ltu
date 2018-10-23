@@ -2,8 +2,8 @@ package kademlia
 
 /* Kademlia constants */
 
-const REPUBLISH_TIME = 30
-const K = 3
+const REPUBLISH_TIME = 10
+const K = 1
 const ALPHA = 1
 
 /* Protocol constants */
