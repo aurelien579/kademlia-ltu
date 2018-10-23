@@ -6,18 +6,17 @@ import (
 
 func TestStorage(t *testing.T) {
 	storage := NewStorage("TEST")
-	storage.deleteFile("Unexisting file")
 
 	storage.Store("test.txt", []byte("bonjour"))
 	storage.Store("test.txt", []byte("bonjour"))
 
 	out := storage.Read("test.txt")
 	if string(out) != "bonjour" {
-		t.Fail()
+		t.Error("Invalid content")
 	}
 
 	storage.deleteFile("test.txt")
 	if storage.Exists("test.txt") {
-		t.Fail()
+		t.Error("Should not exists")
 	}
 }

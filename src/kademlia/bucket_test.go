@@ -91,7 +91,7 @@ func testBucketFull(t *testing.T, port int, otherNode bool) {
 
 	fmt.Println("Contacts added")
 
-	if node.RoutingTable.Buckets[158].Len() > 20 {
+	if node.RoutingTable.Buckets[158].Len() > bucketSize {
 		t.Fatal("Bucket over capacity")
 	}
 
